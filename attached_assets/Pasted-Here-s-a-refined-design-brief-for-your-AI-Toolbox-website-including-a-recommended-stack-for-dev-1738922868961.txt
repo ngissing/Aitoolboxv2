@@ -1,0 +1,55 @@
+Here’s a refined design brief for your **AI Toolbox** website, including a recommended stack for development:  
+
+---
+
+### **Project Title**  
+**AI Toolbox – AI-Powered Video Resource Hub for Teachers**  
+
+### **Objective**  
+Develop a website for teachers that showcases instructional AI-related videos. Users should be able to browse, filter, and view videos with accompanying transcripts and descriptions. The site should also include an admin page to facilitate easy video uploads and metadata management.  
+
+### **Core Features**  
+
+#### **1. User-Facing Features**  
+- **Video Gallery**: Display video thumbnails in a grid or list format.  
+- **Video Detail Page**: Clicking a thumbnail opens a dedicated page with:  
+  - Embedded video player  
+  - Video description  
+  - Full transcript  
+- **Filtering & Sorting Options**: Users can filter videos based on:  
+  - Platform (e.g., YouTube, Vimeo, MP4 uploads)  
+  - Video length (Short: <5 min, Medium: 5-15 min, Long: 15+ min)  
+  - Tags (AI-related topics, teaching techniques, etc.)  
+
+#### **2. Admin Panel (No Authentication Required)**  
+- **Upload Videos**: Provide a simple interface to upload videos or embed links from external sources.  
+- **Metadata Management**:  
+  - Input title, description, and transcript.  
+  - Assign tags and video length category.  
+- **Edit/Delete Videos**: Ability to modify or remove existing content.  
+
+### **Technology Stack**  
+
+#### **Frontend**  
+- **Framework**: React (Next.js for SEO benefits and fast loading)  
+- **Styling**: Tailwind CSS (for clean, responsive UI)  
+- **UI Components**: ShadCN/UI (for prebuilt, accessible components)  
+
+#### **Backend**  
+- **Framework**: Node.js (Express.js for lightweight backend services)  
+- **Database**: Firebase Firestore (for easy storage and retrieval of video metadata)  
+- **File Storage**: Firebase Storage (for uploaded videos) or direct linking to YouTube/Vimeo  
+- **Hosting**: Vercel (for quick, scalable Next.js deployment)  
+
+#### **Video Player & Processing**  
+- **Player**: React Player (supports multiple formats including YouTube, Vimeo, MP4)  
+- **Transcript Processing**: Optionally use OpenAI Whisper API for automatic transcript generation  
+
+### **Additional Considerations**  
+- **Mobile Responsiveness**: Fully optimized for mobile and desktop.  
+- **SEO Optimization**: Use structured data to enhance discoverability.  
+- **Fast Performance**: Lazy loading for videos and images.  
+
+---
+
+Would you like any refinements, such as additional features like user authentication, analytics tracking, or a recommendation engine?
