@@ -1,4 +1,6 @@
 import { videos, type Video, type InsertVideo } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getVideos(): Promise<Video[]>;
@@ -8,42 +10,40 @@ export interface IStorage {
   deleteVideo(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private videos: Map<number, Video>;
-  private currentId: number;
-
-  constructor() {
-    this.videos = new Map();
-    this.currentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getVideos(): Promise<Video[]> {
-    return Array.from(this.videos.values());
+    return await db.select().from(videos);
   }
 
   async getVideo(id: number): Promise<Video | undefined> {
-    return this.videos.get(id);
+    const [video] = await db.select().from(videos).where(eq(videos.id, id));
+    return video;
   }
 
   async createVideo(insertVideo: InsertVideo): Promise<Video> {
-    const id = this.currentId++;
-    const video: Video = { ...insertVideo, id };
-    this.videos.set(id, video);
+    const [video] = await db
+      .insert(videos)
+      .values(insertVideo)
+      .returning();
     return video;
   }
 
   async updateVideo(id: number, updateVideo: Partial<InsertVideo>): Promise<Video | undefined> {
-    const existing = this.videos.get(id);
-    if (!existing) return undefined;
-    
-    const updated = { ...existing, ...updateVideo };
-    this.videos.set(id, updated);
-    return updated;
+    const [video] = await db
+      .update(videos)
+      .set(updateVideo)
+      .where(eq(videos.id, id))
+      .returning();
+    return video;
   }
 
   async deleteVideo(id: number): Promise<boolean> {
-    return this.videos.delete(id);
+    const [deleted] = await db
+      .delete(videos)
+      .where(eq(videos.id, id))
+      .returning();
+    return !!deleted;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
