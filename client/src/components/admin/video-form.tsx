@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import ReactPlayer from "react-player";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { z } from "zod";
 
 interface VideoFormProps {
   onSubmit: (data: InsertVideo) => void;
@@ -24,26 +26,36 @@ interface VideoFormProps {
   submitLabel?: string;
 }
 
-const extendedVideoSchema = insertVideoSchema.extend({
-  url: insertVideoSchema.shape.url.refine(
-    (url) => ReactPlayer.canPlay(url),
-    { message: "Must be a valid YouTube, Vimeo, or MP4 URL" }
-  ),
-  thumbnail: insertVideoSchema.shape.thumbnail.refine(
-    (url) => url.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/i),
-    { message: "Must be a valid image URL (JPG, PNG, or WebP)" }
-  ),
+// Directly use the insertVideoSchema and add additional validation
+const formSchema = insertVideoSchema.superRefine((data, ctx) => {
+  if (data.url && !ReactPlayer.canPlay(data.url)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Must be a valid YouTube, Vimeo, or MP4 URL",
+      path: ["url"],
+    });
+  }
+
+  if (data.thumbnail && !data.thumbnail.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/i)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Must be a valid image URL (JPG, PNG, or WebP)",
+      path: ["thumbnail"],
+    });
+  }
 });
 
 export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }: VideoFormProps) {
   const [previewUrl, setPreviewUrl] = useState(defaultValues?.url || "");
+  const [uploadType, setUploadType] = useState<"url" | "file">("url");
 
   const form = useForm<InsertVideo>({
-    resolver: zodResolver(extendedVideoSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: defaultValues || {
       title: "",
       description: "",
-      url: "",
+      url: null,
+      videoData: null,
       thumbnail: "",
       platform: "youtube",
       duration: 0,
@@ -53,7 +65,8 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
   });
 
   const handleUrlChange = (url: string) => {
-    form.setValue("url", url);
+    form.setValue("url", url || null);
+    form.setValue("videoData", null); // Clear any uploaded file data
     setPreviewUrl(url);
 
     if (ReactPlayer.canPlay(url)) {
@@ -66,6 +79,28 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
         form.setValue("platform", "mp4");
       }
     }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Read file as base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64Data = reader.result as string;
+      form.setValue("videoData", {
+        data: base64Data.split(",")[1], // Remove data URL prefix
+        filename: file.name
+      });
+      form.setValue("url", null); // Clear any existing URL
+      form.setValue("platform", "upload");
+
+      // Create object URL for preview
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -101,22 +136,51 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="url"
-              render={({ field }) => (
+            <Tabs value={uploadType} onValueChange={(v) => setUploadType(v as "url" | "file")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="url">Video URL</TabsTrigger>
+                <TabsTrigger value="file">Upload File</TabsTrigger>
+              </TabsList>
+              <TabsContent value="url">
+                <FormField
+                  control={form.control}
+                  name="url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Video URL</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          value={field.value || ""}
+                          type="url" 
+                          onChange={e => handleUrlChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Enter a YouTube, Vimeo, or direct MP4 video URL
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+              <TabsContent value="file">
                 <FormItem>
-                  <FormLabel>Video URL</FormLabel>
+                  <FormLabel>Video File</FormLabel>
                   <FormControl>
-                    <Input {...field} type="url" onChange={e => handleUrlChange(e.target.value)} />
+                    <Input 
+                      type="file" 
+                      accept="video/*"
+                      onChange={handleFileChange}
+                    />
                   </FormControl>
                   <FormDescription>
-                    Enter a YouTube, Vimeo, or direct MP4 video URL
+                    Upload a video file from your computer
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
+              </TabsContent>
+            </Tabs>
 
             <FormField
               control={form.control}
@@ -151,6 +215,7 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
                       <SelectItem value="youtube">YouTube</SelectItem>
                       <SelectItem value="vimeo">Vimeo</SelectItem>
                       <SelectItem value="mp4">MP4</SelectItem>
+                      <SelectItem value="upload">Upload</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
