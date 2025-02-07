@@ -21,17 +21,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createVideo(insertVideo: InsertVideo): Promise<Video> {
+    // Convert the videoData object to a JSON string if present
+    const dbVideo = {
+      ...insertVideo,
+      videoData: insertVideo.videoData ? JSON.stringify(insertVideo.videoData) : null
+    };
+
     const [video] = await db
       .insert(videos)
-      .values(insertVideo)
+      .values(dbVideo)
       .returning();
     return video;
   }
 
   async updateVideo(id: number, updateVideo: Partial<InsertVideo>): Promise<Video | undefined> {
+    // Convert the videoData object to a JSON string if present
+    const dbVideo = {
+      ...updateVideo,
+      videoData: updateVideo.videoData ? JSON.stringify(updateVideo.videoData) : null
+    };
+
     const [video] = await db
       .update(videos)
-      .set(updateVideo)
+      .set(dbVideo)
       .where(eq(videos.id, id))
       .returning();
     return video;

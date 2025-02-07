@@ -20,6 +20,7 @@ import { useState } from "react";
 import ReactPlayer from "react-player";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 interface VideoFormProps {
   onSubmit: (data: InsertVideo) => void;
@@ -47,10 +48,12 @@ const formSchema = insertVideoSchema.superRefine((data, ctx) => {
 });
 
 export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }: VideoFormProps) {
+  const { toast } = useToast();
   const [previewUrl, setPreviewUrl] = useState(defaultValues?.url || "");
   const [uploadType, setUploadType] = useState<"url" | "file">("url");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<InsertVideo>({
     resolver: zodResolver(formSchema),
@@ -143,9 +146,31 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
     readNextChunk(0);
   };
 
+  const handleSubmit = async (data: InsertVideo) => {
+    try {
+      setIsSubmitting(true);
+      await onSubmit(data);
+      toast({
+        title: "Success",
+        description: "Video added successfully",
+      });
+      form.reset(); // Reset form after successful submission
+      setPreviewUrl("");
+      setUploadProgress(0);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add video",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-6">
             <FormField
@@ -189,10 +214,10 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
                     <FormItem>
                       <FormLabel>Video URL</FormLabel>
                       <FormControl>
-                        <Input 
-                          {...field} 
+                        <Input
+                          {...field}
                           value={field.value || ""}
-                          type="url" 
+                          type="url"
                           onChange={e => handleUrlChange(e.target.value)}
                         />
                       </FormControl>
@@ -209,8 +234,8 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
                   <FormLabel>Video File</FormLabel>
                   <FormControl>
                     <div className="space-y-4">
-                      <Input 
-                        type="file" 
+                      <Input
+                        type="file"
                         accept="video/*"
                         onChange={handleFileChange}
                         disabled={isUploading}
@@ -347,8 +372,12 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
           </div>
         </div>
 
-        <Button type="submit" className="w-full" disabled={isUploading}>
-          {isUploading ? "Uploading..." : submitLabel}
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isUploading || isSubmitting}
+        >
+          {isUploading ? "Uploading..." : isSubmitting ? "Adding Video..." : submitLabel}
         </Button>
       </form>
     </Form>
