@@ -1,17 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { VideoPlayer } from "@/components/video-player";
 import { type Video } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect } from "react";
 
 export default function VideoPage() {
   const [, params] = useRoute("/video/:id");
   const videoId = params?.id;
 
-  const { data: video, isLoading } = useQuery<Video>({
-    queryKey: ["/api/videos", videoId],
+  const { data: video, isLoading, error } = useQuery<Video>({
+    queryKey: [`/api/videos/${videoId}`],
     enabled: !!videoId,
   });
+
+  useEffect(() => {
+    if (error) {
+      console.error('Error fetching video:', error);
+    }
+  }, [error]);
 
   if (isLoading) {
     return (
