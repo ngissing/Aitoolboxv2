@@ -6,7 +6,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Video from "@/pages/video";
 import Admin from "@/pages/admin";
-import { NavigationMenu, NavigationMenuItem, NavigationMenuList, NavigationMenuLink } from "@/components/ui/navigation-menu";
+import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from "@/components/ui/navigation-menu";
 import { Link } from "wouter";
 
 function Navigation() {
@@ -14,13 +14,13 @@ function Navigation() {
     <NavigationMenu className="max-w-screen-xl mx-auto px-4 py-6">
       <NavigationMenuList>
         <NavigationMenuItem>
-          <Link href="/">
-            <NavigationMenuLink className="font-semibold text-lg">AI Toolbox</NavigationMenuLink>
+          <Link href="/" className="font-semibold text-lg">
+            AI Toolbox
           </Link>
         </NavigationMenuItem>
         <NavigationMenuItem className="ml-auto">
-          <Link href="/admin">
-            <NavigationMenuLink>Admin</NavigationMenuLink>
+          <Link href="/admin" className="text-sm">
+            Admin
           </Link>
         </NavigationMenuItem>
       </NavigationMenuList>

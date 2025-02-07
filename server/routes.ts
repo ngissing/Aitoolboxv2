@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertVideoSchema } from "@shared/schema";
 import { z } from "zod";
+import { log } from "./vite";
 
 export function registerRoutes(app: Express): Server {
   // Get all videos
@@ -13,13 +14,19 @@ export function registerRoutes(app: Express): Server {
 
   // Get single video
   app.get("/api/videos/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const video = await storage.getVideo(id);
-    if (!video) {
-      res.status(404).json({ message: "Video not found" });
-      return;
+    try {
+      const id = parseInt(req.params.id);
+      const video = await storage.getVideo(id);
+      if (!video) {
+        res.status(404).json({ message: "Video not found" });
+        return;
+      }
+      log(`Retrieved video: ${JSON.stringify({ ...video, videoData: video.videoData ? '[TRUNCATED]' : null })}`);
+      res.json(video);
+    } catch (error) {
+      log(`Error getting video: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      res.status(500).json({ message: "Failed to get video" });
     }
-    res.json(video);
   });
 
   // Create video
@@ -41,8 +48,8 @@ export function registerRoutes(app: Express): Server {
   app.patch("/api/videos/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const update = insertVideoSchema.partial().parse(req.body);
-      const updated = await storage.updateVideo(id, update);
+      const video = insertVideoSchema.partial().parse(req.body);
+      const updated = await storage.updateVideo(id, video);
       if (!updated) {
         res.status(404).json({ message: "Video not found" });
         return;
@@ -59,13 +66,17 @@ export function registerRoutes(app: Express): Server {
 
   // Delete video
   app.delete("/api/videos/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const deleted = await storage.deleteVideo(id);
-    if (!deleted) {
-      res.status(404).json({ message: "Video not found" });
-      return;
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteVideo(id);
+      if (!deleted) {
+        res.status(404).json({ message: "Video not found" });
+        return;
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete video" });
     }
-    res.status(204).send();
   });
 
   const httpServer = createServer(app);
