@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import ReactPlayer from "react-player";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,6 +49,8 @@ const formSchema = insertVideoSchema.superRefine((data, ctx) => {
 export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }: VideoFormProps) {
   const [previewUrl, setPreviewUrl] = useState(defaultValues?.url || "");
   const [uploadType, setUploadType] = useState<"url" | "file">("url");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<InsertVideo>({
     resolver: zodResolver(formSchema),
@@ -85,22 +88,59 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Read file as base64
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64Data = reader.result as string;
-      form.setValue("videoData", {
-        data: base64Data.split(",")[1], // Remove data URL prefix
-        filename: file.name
-      });
-      form.setValue("url", null); // Clear any existing URL
-      form.setValue("platform", "upload");
+    setIsUploading(true);
+    setUploadProgress(0);
 
-      // Create object URL for preview
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
+    // Create a chunk size of 2MB
+    const CHUNK_SIZE = 2 * 1024 * 1024;
+    const chunks = Math.ceil(file.size / CHUNK_SIZE);
+    let processedChunks = 0;
+
+    // Read file as base64 in chunks
+    const reader = new FileReader();
+    let base64Data = '';
+
+    const readNextChunk = (start: number) => {
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = file.slice(start, end);
+      reader.readAsDataURL(chunk);
     };
-    reader.readAsDataURL(file);
+
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (processedChunks === 0) {
+        // For first chunk, keep the data URL prefix
+        base64Data = result;
+      } else {
+        // For subsequent chunks, only append the base64 data
+        base64Data += result.split('base64,')[1];
+      }
+
+      processedChunks++;
+      const progress = (processedChunks / chunks) * 100;
+      setUploadProgress(progress);
+
+      if (processedChunks < chunks) {
+        // Read next chunk
+        readNextChunk(processedChunks * CHUNK_SIZE);
+      } else {
+        // All chunks processed
+        form.setValue("videoData", {
+          data: base64Data.split(",")[1], // Remove data URL prefix
+          filename: file.name
+        });
+        form.setValue("url", null); // Clear any existing URL
+        form.setValue("platform", "upload");
+
+        // Create object URL for preview
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewUrl(objectUrl);
+        setIsUploading(false);
+      }
+    };
+
+    // Start reading the first chunk
+    readNextChunk(0);
   };
 
   return (
@@ -168,11 +208,22 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
                 <FormItem>
                   <FormLabel>Video File</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="file" 
-                      accept="video/*"
-                      onChange={handleFileChange}
-                    />
+                    <div className="space-y-4">
+                      <Input 
+                        type="file" 
+                        accept="video/*"
+                        onChange={handleFileChange}
+                        disabled={isUploading}
+                      />
+                      {isUploading && (
+                        <div className="space-y-2">
+                          <Progress value={uploadProgress} />
+                          <p className="text-sm text-muted-foreground">
+                            Uploading... {Math.round(uploadProgress)}%
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <FormDescription>
                     Upload a video file from your computer
@@ -296,7 +347,9 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
           </div>
         </div>
 
-        <Button type="submit" className="w-full">{submitLabel}</Button>
+        <Button type="submit" className="w-full" disabled={isUploading}>
+          {isUploading ? "Uploading..." : submitLabel}
+        </Button>
       </form>
     </Form>
   );
