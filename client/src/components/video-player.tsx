@@ -37,39 +37,50 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
 
   if (!videoSource) {
     return (
-      <div className="space-y-8">
-        <div className="aspect-video bg-muted flex items-center justify-center">
-          <p className="text-muted-foreground">No video source available</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <div className="aspect-video bg-muted flex items-center justify-center">
+            <p className="text-muted-foreground">No video source available</p>
+          </div>
+          <div className="mt-4">
+            <h1 className="text-3xl font-bold mb-4">{video.title}</h1>
+            <p className="text-muted-foreground whitespace-pre-wrap">{video.description}</p>
+          </div>
+        </div>
+        <Card className="h-full">
+          <div className="p-4">
+            <h2 className="text-xl font-semibold mb-4">Transcript</h2>
+            <ScrollArea className="h-[calc(100vh-16rem)]">
+              <p className="whitespace-pre-wrap text-sm">{video.transcript}</p>
+            </ScrollArea>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-4">
+        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+          <ReactPlayer
+            url={videoSource}
+            width="100%"
+            height="100%"
+            controls
+            onError={(e) => console.error('ReactPlayer error:', e)}
+          />
         </div>
         <div>
           <h1 className="text-3xl font-bold mb-4">{video.title}</h1>
           <p className="text-muted-foreground whitespace-pre-wrap">{video.description}</p>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="space-y-8">
-      <div className="aspect-video">
-        <ReactPlayer
-          url={videoSource}
-          width="100%"
-          height="100%"
-          controls
-          onError={(e) => console.error('ReactPlayer error:', e)}
-        />
-      </div>
-
-      <div>
-        <h1 className="text-3xl font-bold mb-4">{video.title}</h1>
-        <p className="text-muted-foreground whitespace-pre-wrap">{video.description}</p>
-      </div>
-
-      <Card>
+      <Card className="h-full">
         <div className="p-4">
           <h2 className="text-xl font-semibold mb-4">Transcript</h2>
-          <ScrollArea className="h-[300px]">
+          <ScrollArea className="h-[calc(100vh-16rem)]">
             <p className="whitespace-pre-wrap text-sm">{video.transcript}</p>
           </ScrollArea>
         </div>
