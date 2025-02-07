@@ -4,6 +4,7 @@ import { VideoGrid } from "@/components/video-grid";
 import { VideoFilters } from "@/components/video-filters";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 
 export default function Home() {
   const [filters, setFilters] = useState({
@@ -22,7 +23,7 @@ export default function Home() {
 
   const filteredVideos = videos?.filter(video => {
     if (filters.platform && video.platform !== filters.platform) return false;
-    
+
     if (filters.duration) {
       const duration = video.duration;
       const category = filters.duration;
@@ -30,30 +31,33 @@ export default function Home() {
       if (category === "medium" && (duration <= videoDurationCategories.medium.min || duration > videoDurationCategories.medium.max)) return false;
       if (category === "long" && duration <= videoDurationCategories.long.min) return false;
     }
-    
+
     if (filters.tag && !video.tags.includes(filters.tag)) return false;
-    
+
     return true;
   });
 
   if (isLoading) {
     return (
       <div className="space-y-8">
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-4 w-24" />
-              <div className="flex gap-2">
-                <Skeleton className="h-8 w-20" />
-                <Skeleton className="h-8 w-20" />
-                <Skeleton className="h-8 w-20" />
+        <Card className="p-6">
+          <Skeleton className="h-8 w-64 mb-6" />
+          <div className="space-y-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <div className="flex gap-2">
+                  {[1, 2, 3].map(j => (
+                    <Skeleton key={j} className="h-8 w-20" />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </Card>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <Skeleton key={i} className="aspect-video" />
+            <Skeleton key={i} className="aspect-video rounded-lg" />
           ))}
         </div>
       </div>
