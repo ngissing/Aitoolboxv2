@@ -1,11 +1,28 @@
 import ReactPlayer from "react-player";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Video } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
+import { Video, videoDurationCategories } from "@shared/schema";
 import { useEffect } from "react";
 
 interface VideoPlayerProps {
   video: Video;
+}
+
+function formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+function getDurationCategory(duration: number): string {
+  if (duration <= videoDurationCategories.short.max) return "Short";
+  if (duration <= videoDurationCategories.medium.max) return "Medium";
+  return "Long";
 }
 
 export function VideoPlayer({ video }: VideoPlayerProps) {
@@ -73,6 +90,14 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
         </div>
         <div>
           <h1 className="text-3xl font-bold mb-4">{video.title}</h1>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Badge variant="outline">{video.platform}</Badge>
+            <Badge variant="outline">{formatDuration(video.duration)}</Badge>
+            <Badge variant="outline">{getDurationCategory(video.duration)}</Badge>
+            {video.tags.map((tag) => (
+              <Badge key={tag} variant="secondary">{tag}</Badge>
+            ))}
+          </div>
           <p className="text-muted-foreground whitespace-pre-wrap">{video.description}</p>
         </div>
       </div>
