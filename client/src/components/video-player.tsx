@@ -8,15 +8,21 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ video }: VideoPlayerProps) {
+  // Determine video source - either URL or base64 data
+  const videoSource = video.url || 
+    (video.videoData ? `data:video/mp4;base64,${JSON.parse(video.videoData).data}` : '');
+
   return (
     <div className="space-y-8">
       <div className="aspect-video">
-        <ReactPlayer
-          url={video.url}
-          width="100%"
-          height="100%"
-          controls
-        />
+        {videoSource && (
+          <ReactPlayer
+            url={videoSource}
+            width="100%"
+            height="100%"
+            controls
+          />
+        )}
       </div>
 
       <div>
