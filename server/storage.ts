@@ -16,6 +16,13 @@ export class DatabaseStorage implements IStorage {
     try {
       const allVideos = await db.select().from(videos);
       log(`Retrieved ${allVideos.length} videos from database`);
+      // Log each video for debugging (excluding large videoData)
+      allVideos.forEach(video => {
+        log(`Video ${video.id}: ${JSON.stringify({
+          ...video,
+          videoData: video.videoData ? '[PRESENT]' : null
+        })}`);
+      });
       return allVideos;
     } catch (error) {
       log(`Error retrieving videos: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -27,6 +34,12 @@ export class DatabaseStorage implements IStorage {
     try {
       const [video] = await db.select().from(videos).where(eq(videos.id, id));
       log(`Retrieved video with id ${id}: ${video ? 'found' : 'not found'}`);
+      if (video) {
+        log(`Video details: ${JSON.stringify({
+          ...video,
+          videoData: video.videoData ? '[PRESENT]' : null
+        })}`);
+      }
       return video;
     } catch (error) {
       log(`Error retrieving video ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -36,13 +49,21 @@ export class DatabaseStorage implements IStorage {
 
   async createVideo(insertVideo: InsertVideo): Promise<Video> {
     try {
-      // Convert the videoData object to a JSON string if present
+      // Handle videoData properly
       const dbVideo = {
         ...insertVideo,
-        videoData: insertVideo.videoData ? JSON.stringify(insertVideo.videoData) : null
+        // If videoData is present, stringify it once
+        videoData: insertVideo.videoData ? JSON.stringify(insertVideo.videoData) : null,
+        // Ensure tags is an array
+        tags: Array.isArray(insertVideo.tags) ? insertVideo.tags : []
       };
 
       log(`Creating video with title: ${dbVideo.title}`);
+      log(`Video data to insert: ${JSON.stringify({
+        ...dbVideo,
+        videoData: dbVideo.videoData ? '[PRESENT]' : null
+      })}`);
+
       const [video] = await db
         .insert(videos)
         .values(dbVideo)
@@ -58,10 +79,13 @@ export class DatabaseStorage implements IStorage {
 
   async updateVideo(id: number, updateVideo: Partial<InsertVideo>): Promise<Video | undefined> {
     try {
-      // Convert the videoData object to a JSON string if present
+      // Handle videoData properly
       const dbVideo = {
         ...updateVideo,
-        videoData: updateVideo.videoData ? JSON.stringify(updateVideo.videoData) : null
+        // If videoData is present, stringify it once
+        videoData: updateVideo.videoData ? JSON.stringify(updateVideo.videoData) : undefined,
+        // Ensure tags is an array if present
+        tags: updateVideo.tags ? Array.isArray(updateVideo.tags) ? updateVideo.tags : [] : undefined
       };
 
       log(`Updating video ${id}`);
