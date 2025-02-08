@@ -39,10 +39,9 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <Card className="p-6">
-          <Skeleton className="h-8 w-64 mb-6" />
-          <div className="space-y-6">
+      <div className="space-y-6">
+        <Card className="py-4 px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[1, 2, 3].map(i => (
               <div key={i} className="space-y-2">
                 <Skeleton className="h-4 w-24" />
@@ -65,9 +64,9 @@ export default function Home() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           AI Video Resources
         </h1>
         {videos && (

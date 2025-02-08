@@ -5,8 +5,6 @@ import { Video, videoDurationCategories } from "@shared/schema";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 
 interface VideoFiltersProps {
@@ -30,61 +28,60 @@ export function VideoFilters({ videos, filters, onFilterChange }: VideoFiltersPr
   const durations = ["short", "medium", "long"];
 
   return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle>Filter Videos</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-6">
-        <div>
-          <h3 className="font-medium mb-3 text-sm text-muted-foreground">Platform</h3>
-          <div className="flex flex-wrap gap-2">
-            {platforms.map((platform) => (
-              <Button
-                key={platform}
-                variant={filters.platform === platform ? "default" : "outline"}
-                size="sm"
-                onClick={() => onFilterChange("platform", filters.platform === platform ? null : platform)}
-                className="capitalize"
-              >
-                {platform}
-                {filters.platform === platform && <Check className="ml-2 h-4 w-4" />}
-              </Button>
-            ))}
+    <Card className="mb-6">
+      <CardContent className="py-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Platform</h3>
+            <div className="flex flex-wrap gap-2">
+              {platforms.map((platform) => (
+                <Button
+                  key={platform}
+                  variant={filters.platform === platform ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onFilterChange("platform", filters.platform === platform ? null : platform)}
+                  className="capitalize"
+                >
+                  {platform}
+                  {filters.platform === platform && <Check className="ml-1 h-3 w-3" />}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div>
-          <h3 className="font-medium mb-3 text-sm text-muted-foreground">Duration</h3>
-          <div className="flex flex-wrap gap-2">
-            {durations.map((duration) => (
-              <Button
-                key={duration}
-                variant={filters.duration === duration ? "default" : "outline"}
-                size="sm"
-                onClick={() => onFilterChange("duration", filters.duration === duration ? null : duration)}
-                className="capitalize"
-              >
-                {duration}
-                {filters.duration === duration && <Check className="ml-2 h-4 w-4" />}
-              </Button>
-            ))}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Duration</h3>
+            <div className="flex flex-wrap gap-2">
+              {durations.map((duration) => (
+                <Button
+                  key={duration}
+                  variant={filters.duration === duration ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onFilterChange("duration", filters.duration === duration ? null : duration)}
+                  className="capitalize"
+                >
+                  {duration}
+                  {filters.duration === duration && <Check className="ml-1 h-3 w-3" />}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div>
-          <h3 className="font-medium mb-3 text-sm text-muted-foreground">Tags</h3>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <Badge
-                key={tag}
-                variant={filters.tag === tag ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => onFilterChange("tag", filters.tag === tag ? null : tag)}
-              >
-                {tag}
-                {filters.tag === tag && <X className="ml-2 h-3 w-3" />}
-              </Badge>
-            ))}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Tags</h3>
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant={filters.tag === tag ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => onFilterChange("tag", filters.tag === tag ? null : tag)}
+                >
+                  {tag}
+                  {filters.tag === tag && <X className="ml-1 h-3 w-3" />}
+                </Badge>
+              ))}
+            </div>
           </div>
         </div>
       </CardContent>
