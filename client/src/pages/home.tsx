@@ -10,7 +10,7 @@ export default function Home() {
   const [filters, setFilters] = useState({
     platform: null as string | null,
     duration: null as string | null,
-    tag: null as string | null,
+    tags: [] as string[],
     search: "" as string
   });
 
@@ -18,7 +18,7 @@ export default function Home() {
     queryKey: ["/api/videos"],
   });
 
-  const handleFilterChange = (key: string, value: string | null) => {
+  const handleFilterChange = (key: string, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
@@ -34,8 +34,11 @@ export default function Home() {
       if (!matchesSearch) return false;
     }
 
-    // Platform filter
-    if (filters.platform && video.platform !== filters.platform) return false;
+    // Platform filter - case-insensitive partial match
+    if (filters.platform) {
+      const platformMatch = video.platform.toLowerCase().includes(filters.platform.toLowerCase());
+      if (!platformMatch) return false;
+    }
 
     // Duration filter
     if (filters.duration) {
@@ -46,8 +49,11 @@ export default function Home() {
       if (category === "long" && duration <= videoDurationCategories.long.min) return false;
     }
 
-    // Tag filter
-    if (filters.tag && !video.tags.includes(filters.tag)) return false;
+    // Multi-tag filter - video must have ALL selected tags
+    if (filters.tags.length > 0) {
+      const hasAllTags = filters.tags.every(tag => video.tags.includes(tag));
+      if (!hasAllTags) return false;
+    }
 
     return true;
   });
