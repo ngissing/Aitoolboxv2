@@ -17,6 +17,9 @@ interface VideoFiltersProps {
 }
 
 export function VideoFilters({ videos, filters, onFilterChange }: VideoFiltersProps) {
+  // Get unique platforms
+  const platforms = Array.from(new Set(videos.map((v) => v.platform)));
+
   // Get all unique tags
   const tags = Array.from(new Set(videos.flatMap((v) => v.tags)));
 
@@ -46,11 +49,22 @@ export function VideoFilters({ videos, filters, onFilterChange }: VideoFiltersPr
             />
           </div>
 
-          <Input
-            placeholder="Filter by platform"
-            value={filters.platform || ''}
-            onChange={(e) => onFilterChange('platform', e.target.value || null)}
-          />
+          <Select
+            value={filters.platform ?? "all"}
+            onValueChange={(value) => onFilterChange('platform', value === "all" ? null : value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filter by platform" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Platforms</SelectItem>
+              {platforms.map((platform) => (
+                <SelectItem key={platform} value={platform}>
+                  {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Select
             value={filters.duration ?? "all"}

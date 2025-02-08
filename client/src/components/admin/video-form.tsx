@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+//import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
@@ -281,19 +281,12 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Platform</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select platform" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="vimeo">Vimeo</SelectItem>
-                      <SelectItem value="mp4">MP4</SelectItem>
-                      <SelectItem value="upload">Upload</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Input {...field} placeholder="Enter platform (e.g., youtube, vimeo, mp4)" />
+                  </FormControl>
+                  <FormDescription>
+                    Enter the video platform or source
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
