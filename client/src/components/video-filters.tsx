@@ -1,11 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Check, X } from "lucide-react";
-import { Video, videoDurationCategories } from "@shared/schema";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Video } from "@shared/schema";
+import { Search } from "lucide-react";
 
 interface VideoFiltersProps {
   videos: Video[];
@@ -13,6 +10,7 @@ interface VideoFiltersProps {
     platform: string | null;
     duration: string | null;
     tag: string | null;
+    search: string;
   };
   onFilterChange: (key: string, value: string | null) => void;
 }
@@ -30,58 +28,72 @@ export function VideoFilters({ videos, filters, onFilterChange }: VideoFiltersPr
   return (
     <Card className="mb-6">
       <CardContent className="py-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Platform</h3>
-            <div className="flex flex-wrap gap-2">
-              {platforms.map((platform) => (
-                <Button
-                  key={platform}
-                  variant={filters.platform === platform ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => onFilterChange("platform", filters.platform === platform ? null : platform)}
-                  className="capitalize"
-                >
-                  {platform}
-                  {filters.platform === platform && <Check className="ml-1 h-3 w-3" />}
-                </Button>
-              ))}
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr,200px,200px,200px] gap-4 items-end">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search videos..."
+              className="pl-8"
+              value={filters.search}
+              onChange={(e) => onFilterChange('search', e.target.value)}
+            />
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Duration</h3>
-            <div className="flex flex-wrap gap-2">
-              {durations.map((duration) => (
-                <Button
-                  key={duration}
-                  variant={filters.duration === duration ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => onFilterChange("duration", filters.duration === duration ? null : duration)}
-                  className="capitalize"
-                >
-                  {duration}
-                  {filters.duration === duration && <Check className="ml-1 h-3 w-3" />}
-                </Button>
-              ))}
-            </div>
+            <Select
+              value={filters.platform ?? "all"}
+              onValueChange={(value) => onFilterChange('platform', value === "all" ? null : value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by platform" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Platforms</SelectItem>
+                {platforms.map((platform) => (
+                  <SelectItem key={platform} value={platform}>
+                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Tags</h3>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant={filters.tag === tag ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => onFilterChange("tag", filters.tag === tag ? null : tag)}
-                >
-                  {tag}
-                  {filters.tag === tag && <X className="ml-1 h-3 w-3" />}
-                </Badge>
-              ))}
-            </div>
+            <Select
+              value={filters.duration ?? "all"}
+              onValueChange={(value) => onFilterChange('duration', value === "all" ? null : value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by duration" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Durations</SelectItem>
+                {durations.map((duration) => (
+                  <SelectItem key={duration} value={duration}>
+                    {duration.charAt(0).toUpperCase() + duration.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Select
+              value={filters.tag ?? "all"}
+              onValueChange={(value) => onFilterChange('tag', value === "all" ? null : value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by tag" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tags</SelectItem>
+                {tags.map((tag) => (
+                  <SelectItem key={tag} value={tag}>
+                    {tag}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </CardContent>

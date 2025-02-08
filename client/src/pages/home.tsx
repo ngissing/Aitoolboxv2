@@ -11,6 +11,7 @@ export default function Home() {
     platform: null as string | null,
     duration: null as string | null,
     tag: null as string | null,
+    search: "" as string
   });
 
   const { data: videos, isLoading } = useQuery<Video[]>({
@@ -22,8 +23,21 @@ export default function Home() {
   };
 
   const filteredVideos = videos?.filter(video => {
+    // Search filter
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      const matchesSearch = 
+        video.title.toLowerCase().includes(searchTerm) ||
+        video.description.toLowerCase().includes(searchTerm) ||
+        video.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+
+      if (!matchesSearch) return false;
+    }
+
+    // Platform filter
     if (filters.platform && video.platform !== filters.platform) return false;
 
+    // Duration filter
     if (filters.duration) {
       const duration = video.duration;
       const category = filters.duration;
@@ -32,6 +46,7 @@ export default function Home() {
       if (category === "long" && duration <= videoDurationCategories.long.min) return false;
     }
 
+    // Tag filter
     if (filters.tag && !video.tags.includes(filters.tag)) return false;
 
     return true;
@@ -41,17 +56,11 @@ export default function Home() {
     return (
       <div className="space-y-6">
         <Card className="py-4 px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <div className="flex gap-2">
-                  {[1, 2, 3].map(j => (
-                    <Skeleton key={j} className="h-8 w-20" />
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
           </div>
         </Card>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
