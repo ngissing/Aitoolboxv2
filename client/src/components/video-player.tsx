@@ -30,42 +30,71 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      // For uploaded videos
-      if (video.videoData) {
-        let parsedData;
-        try {
-          // If it's already an object, use it directly
-          if (typeof video.videoData === 'object') {
-            parsedData = video.videoData;
-          } else {
-            // If it's a string, parse it
-            parsedData = JSON.parse(video.videoData);
-          }
+    let blobUrl: string | null = null;
 
-          if (parsedData?.data) {
-            setVideoSource(`data:video/mp4;base64,${parsedData.data}`);
-            console.log('Set video source from uploaded data');
-          } else {
-            setError('Invalid video data format');
+    const setupVideo = async () => {
+      try {
+        // For uploaded videos
+        if (video.videoData) {
+          let parsedData;
+          try {
+            // If it's already an object, use it directly
+            if (typeof video.videoData === 'object') {
+              parsedData = video.videoData;
+            } else {
+              // If it's a string, parse it
+              parsedData = JSON.parse(video.videoData);
+            }
+
+            if (parsedData?.data) {
+              // Convert base64 to blob
+              const base64Data = parsedData.data;
+              const byteCharacters = atob(base64Data);
+              const byteNumbers = new Array(byteCharacters.length);
+
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: 'video/mp4' });
+
+              // Create blob URL
+              blobUrl = URL.createObjectURL(blob);
+              setVideoSource(blobUrl);
+              console.log('Created blob URL for video data');
+            } else {
+              setError('Invalid video data format');
+              console.error('Invalid video data format:', parsedData);
+            }
+          } catch (e) {
+            console.error('Error parsing video data:', e);
+            setError('Failed to parse video data');
           }
-        } catch (e) {
-          console.error('Error parsing video data:', e);
-          setError('Failed to parse video data');
         }
+        // For URL-based videos
+        else if (video.url) {
+          setVideoSource(video.url);
+          console.log('Set video source from URL');
+        }
+        else {
+          setError('No video source available');
+        }
+      } catch (e) {
+        console.error('Error setting video source:', e);
+        setError('Failed to load video');
       }
-      // For URL-based videos
-      else if (video.url) {
-        setVideoSource(video.url);
-        console.log('Set video source from URL');
+    };
+
+    setupVideo();
+
+    // Cleanup function
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        console.log('Revoked blob URL');
       }
-      else {
-        setError('No video source available');
-      }
-    } catch (e) {
-      console.error('Error setting video source:', e);
-      setError('Failed to load video');
-    }
+    };
   }, [video]);
 
   const renderVideoContent = () => {
@@ -94,7 +123,7 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
           controls
           onError={(e) => {
             console.error('ReactPlayer error:', e);
-            setError('Failed to play video');
+            setError('Failed to play video. Please try again later.');
           }}
         />
       </div>
