@@ -36,14 +36,25 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
       try {
         // For uploaded videos
         if (video.videoData) {
+          console.log('Raw videoData:', video.videoData);
+
           let parsedData;
           try {
-            // If it's already an object, use it directly
-            if (typeof video.videoData === 'object') {
-              parsedData = video.videoData;
+            // Handle double-stringified data
+            if (typeof video.videoData === 'string') {
+              // First parse - converts the string to an object
+              const firstParse = JSON.parse(video.videoData);
+              console.log('After first parse:', firstParse);
+
+              // Check if we need a second parse
+              if (typeof firstParse === 'string') {
+                parsedData = JSON.parse(firstParse);
+                console.log('After second parse:', parsedData);
+              } else {
+                parsedData = firstParse;
+              }
             } else {
-              // If it's a string, parse it
-              parsedData = JSON.parse(video.videoData);
+              parsedData = video.videoData;
             }
 
             if (parsedData?.data) {
@@ -62,10 +73,10 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
               // Create blob URL
               blobUrl = URL.createObjectURL(blob);
               setVideoSource(blobUrl);
-              console.log('Created blob URL for video data');
+              console.log('Created blob URL for video data:', blobUrl);
             } else {
-              setError('Invalid video data format');
               console.error('Invalid video data format:', parsedData);
+              setError('Invalid video data format');
             }
           } catch (e) {
             console.error('Error parsing video data:', e);
@@ -75,7 +86,7 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
         // For URL-based videos
         else if (video.url) {
           setVideoSource(video.url);
-          console.log('Set video source from URL');
+          console.log('Set video source from URL:', video.url);
         }
         else {
           setError('No video source available');
