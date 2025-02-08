@@ -80,18 +80,13 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          AI Video Resources
-        </h1>
-        {videos && (
-          <VideoFilters
-            videos={videos}
-            filters={filters}
-            onFilterChange={handleFilterChange}
-          />
-        )}
-      </div>
+      {videos && (
+        <VideoFilters
+          videos={videos}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+        />
+      )}
       {filteredVideos && <VideoGrid videos={filteredVideos} />}
     </div>
   );

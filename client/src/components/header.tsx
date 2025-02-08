@@ -14,7 +14,7 @@ export function Header() {
               </Button>
             </Link>
             <Link href="/" className="font-semibold text-lg">
-              AI Video Resources
+              AI-Toolbox
             </Link>
           </div>
           <nav className="flex gap-4">
