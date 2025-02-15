@@ -6,7 +6,7 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
 }
 
-export default {
+const config = {
   schema: './shared/schema.ts',
   out: './drizzle',
   driver: 'pg',
@@ -15,4 +15,6 @@ export default {
   },
   verbose: true,
   strict: true
-} satisfies Config; 
+} as const;
+
+export default config; 
