@@ -6,9 +6,9 @@ const BUCKET_NAME = 'videos';
 
 export interface IStorage {
   getVideos(): Promise<Video[]>;
-  getVideo(id: number): Promise<Video | undefined>;
+  getVideo(id: number): Promise<Video | null>;
   createVideo(video: InsertVideo): Promise<Video>;
-  updateVideo(id: number, video: Partial<InsertVideo>): Promise<Video | undefined>;
+  updateVideo(id: number, video: Partial<InsertVideo>): Promise<Video | null>;
   deleteVideo(id: number): Promise<boolean>;
 }
 
@@ -25,7 +25,7 @@ export class DatabaseStorage implements IStorage {
       const processedVideos = await Promise.all(allVideos.map(async video => {
         const baseVideo = {
           ...video,
-          videoDate: video.video_date // Map snake_case to camelCase
+          video_date: video.video_date // Map snake_case to camelCase
         };
 
         if (video.platform === 'upload' && video.video_data) {
@@ -38,7 +38,7 @@ export class DatabaseStorage implements IStorage {
             return {
               ...baseVideo,
               url: publicUrl,
-              videoData: null // Clear the video data as we now have the URL
+              video_data: null // Clear the video data as we now have the URL
             };
           } catch (err) {
             log(`Error getting public URL for video ${video.id}: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -63,202 +63,103 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getVideo(id: number): Promise<Video | undefined> {
+  async getVideo(id: number): Promise<Video | null> {
     try {
-      const { data: videos, error } = await supabase
+      const { data: video, error } = await supabase
         .from('videos')
         .select('*')
         .eq('id', id)
-        .limit(1);
+        .single();
 
-      if (error) throw error;
-
-      const video = videos?.[0];
-      if (video) {
-        const baseVideo = {
-          ...video,
-          videoDate: video.video_date // Map snake_case to camelCase
-        };
-
-        // Get storage URL for uploaded videos
-        if (video.platform === 'upload' && video.video_data) {
-          try {
-            const { data: { publicUrl } } = supabase
-              .storage
-              .from(BUCKET_NAME)
-              .getPublicUrl(video.video_data);
-            
-            return {
-              ...baseVideo,
-              url: publicUrl,
-              videoData: null // Clear the video data as we now have the URL
-            };
-          } catch (err) {
-            log(`Error getting public URL for video ${id}: ${err instanceof Error ? err.message : 'Unknown error'}`);
-            return baseVideo;
-          }
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
         }
-        return baseVideo;
+        throw error;
       }
-      return undefined;
+
+      return video;
     } catch (error) {
-      log(`Error retrieving video ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      log(`Error fetching video ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;
     }
   }
 
   async createVideo(insertVideo: InsertVideo): Promise<Video> {
     try {
-      log("Starting video creation...");
-      
-      let videoPath: string | null = null;
-      
-      // If this is an uploaded video, store it in Supabase Storage
-      if (insertVideo.videoData) {
-        const { data, filename } = insertVideo.videoData;
-        const buffer = Buffer.from(data, 'base64');
-        const path = `uploads/${Date.now()}-${filename}`;
-        
-        log(`Uploading video to storage: ${path}`);
-        const { error: uploadError } = await supabase
-          .storage
-          .from(BUCKET_NAME)
-          .upload(path, buffer, {
-            contentType: 'video/mp4',
-            upsert: false
-          });
+      log('Creating video...');
+      log(`Insert data: ${JSON.stringify(insertVideo)}`);
 
-        if (uploadError) {
-          throw new Error(`Failed to upload video: ${uploadError.message}`);
-        }
-        
-        videoPath = path;
-        log(`Video uploaded successfully to: ${path}`);
+      // Handle video data if present
+      if (insertVideo.video_data) {
+        const { data, filename } = insertVideo.video_data;
+        log(`Processing video data with filename: ${filename}`);
       }
 
-      // Create the database record
-      const dbVideo = {
-        title: insertVideo.title,
-        description: insertVideo.description,
-        url: insertVideo.url,
-        video_data: videoPath, // Store the storage path instead of the video data
-        thumbnail: insertVideo.thumbnail,
-        platform: insertVideo.platform,
-        duration: insertVideo.duration,
-        transcript: insertVideo.transcript,
-        tags: insertVideo.tags,
-        video_date: insertVideo.videoDate ? new Date(insertVideo.videoDate).toISOString() : null
-      };
-
-      const { data: videos, error } = await supabase
+      const { data: result, error } = await supabase
         .from('videos')
-        .insert(dbVideo)
+        .insert({
+          title: insertVideo.title,
+          description: insertVideo.description,
+          url: insertVideo.url,
+          video_data: insertVideo.video_data,
+          thumbnail: insertVideo.thumbnail,
+          platform: insertVideo.platform,
+          duration: insertVideo.duration,
+          transcript: insertVideo.transcript,
+          tags: insertVideo.tags,
+          video_date: insertVideo.video_date ? new Date(insertVideo.video_date).toISOString() : null
+        })
         .select()
-        .limit(1);
+        .single();
 
       if (error) throw error;
-      
-      const video = videos?.[0];
-      if (!video) {
-        throw new Error("No video returned after insert");
-      }
+      if (!result) throw new Error('No data returned from insert');
 
-      // If it's an uploaded video, get the public URL
-      if (video.platform === 'upload' && video.video_data) {
-        const { data: { publicUrl } } = supabase
-          .storage
-          .from(BUCKET_NAME)
-          .getPublicUrl(video.video_data);
-        
-        return {
-          ...video,
-          url: publicUrl,
-          videoData: null, // Clear the video data as we now have the URL
-          videoDate: video.video_date // Map snake_case to camelCase
-        };
-      }
-
-      return {
-        ...video,
-        videoDate: video.video_date // Map snake_case to camelCase
-      };
+      log(`Video created successfully with ID: ${result.id}`);
+      return result;
     } catch (error) {
       log(`Error creating video: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      log(`Error details: ${error instanceof Error ? error.stack : 'No stack trace available'}`);
       throw error;
     }
   }
 
-  async updateVideo(id: number, updateVideo: Partial<InsertVideo>): Promise<Video | undefined> {
+  async updateVideo(id: number, updateVideo: Partial<InsertVideo>): Promise<Video | null> {
     try {
-      log(`Starting update for video ${id}`);
-      log(`Update data: ${JSON.stringify(updateVideo, null, 2)}`);
-      
-      // First, check if the video exists
-      const { data: existingVideos, error: getError } = await supabase
-        .from('videos')
-        .select('*')
-        .eq('id', id)
-        .limit(1);
+      log(`Updating video ${id}...`);
+      log(`Update data: ${JSON.stringify(updateVideo)}`);
 
-      if (getError) {
-        log(`Error fetching existing video: ${getError.message}`);
-        throw getError;
+      // Get the existing video first
+      const dbVideo = await this.getVideo(id);
+      if (!dbVideo) {
+        log(`Video ${id} not found`);
+        return null;
       }
 
-      if (!existingVideos || existingVideos.length === 0) {
-        log(`No video found with id ${id}`);
-        return undefined;
+      // Handle video data if present
+      if (updateVideo.video_data) {
+        const { data, filename } = updateVideo.video_data;
+        log(`Processing video data with filename: ${filename}`);
       }
 
-      let videoPath: string | null = null;
-      
-      // If this is an uploaded video, store it in Supabase Storage
-      if (updateVideo.videoData) {
-        const { data, filename } = updateVideo.videoData;
-        const buffer = Buffer.from(data, 'base64');
-        const path = `uploads/${Date.now()}-${filename}`;
-        
-        log(`Uploading video to storage: ${path}`);
-        const { error: uploadError } = await supabase
-          .storage
-          .from(BUCKET_NAME)
-          .upload(path, buffer, {
-            contentType: 'video/mp4',
-            upsert: false
-          });
-
-        if (uploadError) {
-          log(`Error uploading video: ${uploadError.message}`);
-          throw new Error(`Failed to upload video: ${uploadError.message}`);
-        }
-        
-        videoPath = path;
-        log(`Video uploaded successfully to: ${path}`);
+      // Update only the fields that are provided
+      if (updateVideo.title !== undefined) dbVideo.title = updateVideo.title;
+      if (updateVideo.description !== undefined) dbVideo.description = updateVideo.description;
+      if (updateVideo.url !== undefined) dbVideo.url = updateVideo.url;
+      if (updateVideo.video_data !== undefined) dbVideo.video_data = updateVideo.video_data;
+      if (updateVideo.thumbnail !== undefined) dbVideo.thumbnail = updateVideo.thumbnail;
+      if (updateVideo.platform !== undefined) dbVideo.platform = updateVideo.platform;
+      if (updateVideo.duration !== undefined) dbVideo.duration = updateVideo.duration;
+      if (updateVideo.transcript !== undefined) dbVideo.transcript = updateVideo.transcript;
+      if (updateVideo.tags !== undefined) dbVideo.tags = updateVideo.tags;
+      if (updateVideo.video_date !== undefined) {
+        dbVideo.video_date = updateVideo.video_date ? new Date(updateVideo.video_date).toISOString() : null;
       }
-
-      // Prepare the video data for update
-      const dbVideo: Record<string, any> = {};
-      
-      if ('title' in updateVideo) dbVideo.title = updateVideo.title;
-      if ('description' in updateVideo) dbVideo.description = updateVideo.description;
-      if ('url' in updateVideo) dbVideo.url = updateVideo.url;
-      if (videoPath !== null) dbVideo.video_data = videoPath;
-      if ('thumbnail' in updateVideo) dbVideo.thumbnail = updateVideo.thumbnail;
-      if ('platform' in updateVideo) dbVideo.platform = updateVideo.platform;
-      if ('duration' in updateVideo) dbVideo.duration = updateVideo.duration;
-      if ('transcript' in updateVideo) dbVideo.transcript = updateVideo.transcript;
-      if ('tags' in updateVideo) dbVideo.tags = updateVideo.tags;
 
       // Only proceed with update if there are fields to update
       if (Object.keys(dbVideo).length === 0) {
         log(`No fields to update for video ${id}`);
-        return existingVideos[0];
-      }
-
-      // Add videoDate if present
-      if ('videoDate' in updateVideo) {
-        dbVideo.video_date = updateVideo.videoDate ? new Date(updateVideo.videoDate).toISOString() : null;
+        return dbVideo;
       }
 
       log(`Updating video ${id} with fields: ${Object.keys(dbVideo).join(', ')}`);
@@ -278,26 +179,11 @@ export class DatabaseStorage implements IStorage {
       const video = videos?.[0];
       if (video) {
         log(`Successfully updated video ${id}`);
-        // If it's an uploaded video, get the public URL
-        if (video.platform === 'upload' && video.video_data) {
-          log(`Getting public URL for uploaded video: ${video.video_data}`);
-          const { data: { publicUrl } } = supabase
-            .storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(video.video_data);
-          
-          return {
-            ...video,
-            url: publicUrl,
-            videoData: null, // Clear the video data as we now have the URL
-            videoDate: video.video_date // Map snake_case to camelCase
-          };
-        }
         return video;
       }
       
       log(`No video found after update for id ${id}`);
-      return undefined;
+      return null;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const stackTrace = error instanceof Error ? error.stack : undefined;

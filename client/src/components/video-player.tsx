@@ -58,11 +58,11 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
         }
 
         // For uploaded videos
-        if (video.videoData) {
+        if (video.video_data) {
           try {
-            let parsedData = typeof video.videoData === 'string' 
-              ? JSON.parse(video.videoData)
-              : video.videoData;
+            let parsedData = typeof video.video_data === 'string' 
+              ? JSON.parse(video.video_data)
+              : video.video_data;
 
             // Handle double-stringified data
             if (typeof parsedData === 'string') {

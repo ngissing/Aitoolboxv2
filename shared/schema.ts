@@ -9,7 +9,7 @@ export const insertVideoSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   url: z.string().nullable(),
-  videoData: z.object({
+  video_data: z.object({
     data: z.string(),
     filename: z.string()
   }).nullable(),
@@ -20,15 +20,15 @@ export const insertVideoSchema = z.object({
     .min(1, "Transcript is required")
     .transform((text: string) => text.replace(/\r\n/g, '\n')), // Normalize line endings
   tags: z.array(z.string()),
-  videoDate: z.union([
+  video_date: z.union([
     z.string().transform((str: string) => new Date(str)),
     z.date(),
     z.null()
   ])
 }).refine(
   (data) => {
-    // Either URL or videoData must be present
-    return (data.url !== null) || (data.videoData !== null);
+    // Either URL or video_data must be present
+    return (data.url !== null) || (data.video_data !== null);
   },
   { message: "Either URL or video file must be provided" }
 );

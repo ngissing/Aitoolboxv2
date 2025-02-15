@@ -25,11 +25,11 @@ interface VideoGridProps {
 }
 
 export function VideoGrid({ videos }: VideoGridProps) {
-  // Sort videos by videoDate in descending order (newest first)
+  // Sort videos by video_date in descending order (newest first)
   const sortedVideos = [...videos].sort((a, b) => {
-    if (!a.videoDate) return 1;  // Videos without dates go to the end
-    if (!b.videoDate) return -1;
-    return new Date(b.videoDate).getTime() - new Date(a.videoDate).getTime();
+    if (!a.video_date) return 1;  // Videos without dates go to the end
+    if (!b.video_date) return -1;
+    return new Date(b.video_date).getTime() - new Date(a.video_date).getTime();
   });
 
   return (
@@ -52,9 +52,9 @@ export function VideoGrid({ videos }: VideoGridProps) {
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">{video.platform}</Badge>
                 <Badge variant="outline">{getDurationCategory(video.duration)}</Badge>
-                {video.videoDate && (
+                {video.video_date && (
                   <Badge variant="outline" className="ml-auto">
-                    {format(new Date(video.videoDate), "dd MMMM yy")}
+                    {format(new Date(video.video_date), "dd MMMM yy")}
                   </Badge>
                 )}
               </div>
