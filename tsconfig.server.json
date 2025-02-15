@@ -4,7 +4,10 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "dist",
-    "noEmit": false
+    "noEmit": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
   },
   "include": ["server/**/*", "shared/**/*"],
   "exclude": ["client/**/*", "node_modules"]

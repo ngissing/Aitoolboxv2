@@ -26,7 +26,7 @@ export const insertVideoSchema = z.object({
     z.null()
   ])
 }).refine(
-  (data) => {
+  (data: { url: string | null; video_data: { data: string; filename: string; } | null; }) => {
     // Either URL or video_data must be present
     return (data.url !== null) || (data.video_data !== null);
   },
