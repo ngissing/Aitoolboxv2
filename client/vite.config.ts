@@ -10,14 +10,19 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "../shared"),
     },
   },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    sourcemap: true
+  },
   server: {
     port: 3001,
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        target: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5001',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         ws: true,
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
