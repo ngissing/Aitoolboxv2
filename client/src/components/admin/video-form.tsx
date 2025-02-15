@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertVideoSchema, type InsertVideo, type Video } from "@shared/schema";
+import { type InsertVideo, type Video } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -66,7 +66,25 @@ export type VideoFormProps = {
 };
 
 // Directly use the insertVideoSchema and add additional validation
-const formSchema = insertVideoSchema.superRefine((data: z.infer<typeof insertVideoSchema>, ctx: z.RefinementCtx) => {
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  url: z.string().nullable(),
+  videoData: z.object({
+    data: z.string(),
+    filename: z.string()
+  }).nullable(),
+  thumbnail: z.string().min(1, "Thumbnail URL is required"),
+  platform: z.enum(["youtube", "vimeo", "mp4", "upload"]),
+  duration: z.number().min(0),
+  transcript: z.string().min(1, "Transcript is required"),
+  tags: z.array(z.string()),
+  videoDate: z.union([
+    z.string().transform((str) => new Date(str)),
+    z.date(),
+    z.null()
+  ])
+}).superRefine((data, ctx) => {
   if (data.url && !ReactPlayerStatic.canPlay(data.url)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -84,6 +102,8 @@ const formSchema = insertVideoSchema.superRefine((data: z.infer<typeof insertVid
   }
 });
 
+type VideoFormData = z.infer<typeof formSchema>;
+
 export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }: VideoFormProps) {
   const { toast } = useToast();
   const [previewUrl, setPreviewUrl] = useState(defaultValues?.url || "");
@@ -92,7 +112,7 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<InsertVideo>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: defaultValues?.title || "",
@@ -184,7 +204,7 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
     readNextChunk(0);
   };
 
-  const handleSubmit = async (data: z.infer<typeof insertVideoSchema>) => {
+  const handleSubmit = async (data: VideoFormData) => {
     try {
       setIsSubmitting(true);
       await onSubmit(data);
@@ -398,10 +418,9 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
                         mode="single"
                         selected={field.value || undefined}
                         onSelect={field.onChange}
-                        disabled={(date) =>
+                        disabled={(date: Date) =>
                           date > new Date() || date < new Date("1900-01-01")
                         }
-                        initialFocus
                       />
                     </PopoverContent>
                   </Popover>

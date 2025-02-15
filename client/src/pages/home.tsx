@@ -5,7 +5,6 @@ import { VideoFilters } from "@/components/video-filters";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 
 async function fetchVideos(): Promise<Video[]> {
   const response = await fetch("/api/videos");
@@ -28,7 +27,6 @@ async function fetchVideos(): Promise<Video[]> {
 }
 
 export default function Home() {
-  const { toast } = useToast();
   const [filters, setFilters] = useState({
     platform: null as string | null,
     duration: null as string | null,
@@ -53,7 +51,7 @@ export default function Home() {
       const matchesSearch = 
         video.title.toLowerCase().includes(searchTerm) ||
         video.description.toLowerCase().includes(searchTerm) ||
-        video.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+        video.tags.some((tag: string) => tag.toLowerCase().includes(searchTerm));
 
       if (!matchesSearch) return false;
     }
