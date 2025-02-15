@@ -59,7 +59,7 @@ export function VideoGrid({ videos }: VideoGridProps) {
                 )}
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
-                {video.tags.slice(0, 2).map((tag) => (
+                {video.tags.slice(0, 2).map((tag: string) => (
                   <Badge key={tag} variant="secondary">{tag}</Badge>
                 ))}
               </div>

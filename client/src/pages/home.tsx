@@ -39,21 +39,14 @@ export default function Home() {
   const { data: videos, isLoading } = useQuery<Video[]>({
     queryKey: ["videos"],
     queryFn: fetchVideos,
-    retry: false,
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to fetch videos",
-        variant: "destructive",
-      });
-    },
+    retry: false
   });
 
-  const handleFilterChange = (key: string, value: any) => {
+  const handleFilterChange = (key: string, value: string | string[] | null) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const filteredVideos = videos?.filter(video => {
+  const filteredVideos = videos?.filter((video: Video) => {
     // Search filter
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();

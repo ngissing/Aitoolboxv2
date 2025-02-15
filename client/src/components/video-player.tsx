@@ -218,7 +218,7 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
             <Badge variant="outline">{video.platform}</Badge>
             <Badge variant="outline">{formatDuration(video.duration)}</Badge>
             <Badge variant="outline">{getDurationCategory(video.duration)}</Badge>
-            {video.tags.map((tag) => (
+            {video.tags.map((tag: string) => (
               <Badge key={tag} variant="secondary">{tag}</Badge>
             ))}
           </div>
@@ -231,7 +231,7 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
           <h2 className="text-xl font-semibold mb-4">Transcript</h2>
           <ScrollArea className="h-[calc(100vh-16rem)]">
             <div className="whitespace-pre-wrap text-sm">
-              {video.transcript.split('\n').map((paragraph, index) => (
+              {video.transcript.split('\n').map((paragraph: string, index: number) => (
                 paragraph.trim() ? (
                   <p key={index} className="mb-4">
                     {paragraph}

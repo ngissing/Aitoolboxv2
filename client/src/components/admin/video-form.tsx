@@ -66,7 +66,7 @@ export type VideoFormProps = {
 };
 
 // Directly use the insertVideoSchema and add additional validation
-const formSchema = insertVideoSchema.superRefine((data, ctx) => {
+const formSchema = insertVideoSchema.superRefine((data: z.infer<typeof insertVideoSchema>, ctx: z.RefinementCtx) => {
   if (data.url && !ReactPlayerStatic.canPlay(data.url)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -184,7 +184,7 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
     readNextChunk(0);
   };
 
-  const handleSubmit = async (data: InsertVideo) => {
+  const handleSubmit = async (data: z.infer<typeof insertVideoSchema>) => {
     try {
       setIsSubmitting(true);
       await onSubmit(data);

@@ -15,6 +15,19 @@ export const videos = pgTable("videos", {
   videoDate: timestamp("video_date", { withTimezone: true }), // This maps video_date to videoDate
 });
 
+type VideoData = {
+  title: string;
+  description: string;
+  url: string | null;
+  videoData: { data: string; filename: string } | null;
+  thumbnail: string;
+  platform: string;
+  duration: number;
+  transcript: string;
+  tags: string[];
+  videoDate: Date | null;
+};
+
 // Create a combined schema that handles both URL and file upload cases
 export const insertVideoSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -29,15 +42,15 @@ export const insertVideoSchema = z.object({
   duration: z.number().min(0),
   transcript: z.string()
     .min(1, "Transcript is required")
-    .transform(text => text.replace(/\r\n/g, '\n')), // Normalize line endings
+    .transform((text: string) => text.replace(/\r\n/g, '\n')), // Normalize line endings
   tags: z.array(z.string()),
   videoDate: z.union([
-    z.string().transform((str) => new Date(str)),
+    z.string().transform((str: string) => new Date(str)),
     z.date(),
     z.null()
   ])
 }).refine(
-  (data) => {
+  (data: VideoData) => {
     // Either URL or videoData must be present
     return (data.url !== null) || (data.videoData !== null);
   },
