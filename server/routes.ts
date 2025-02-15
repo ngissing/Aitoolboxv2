@@ -11,7 +11,7 @@ const updateVideoSchema = z.object({
   title: z.string().min(1, "Title is required").optional(),
   description: z.string().min(1, "Description is required").optional(),
   url: z.string().nullable().optional(),
-  videoData: z.object({
+  video_data: z.object({
     data: z.string(),
     filename: z.string()
   }).nullable().optional(),
@@ -55,7 +55,7 @@ export function registerRoutes(app: Express): Server {
         res.status(404).json({ message: "Video not found" });
         return;
       }
-      log(`Retrieved video: ${JSON.stringify({ ...video, videoData: video.videoData ? '[TRUNCATED]' : null })}`);
+      log(`Retrieved video: ${JSON.stringify({ ...video, video_data: video.video_data ? '[TRUNCATED]' : null })}`);
       res.json(video);
     } catch (error) {
       log(`Error getting video: ${error instanceof Error ? error.message : 'Unknown error'}`);
