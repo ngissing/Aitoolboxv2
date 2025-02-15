@@ -2,14 +2,14 @@ import express, { type Express } from "express";
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
-import { createServer as createViteServer, createLogger } from "vite";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-import { type Server } from "http";
+import { createServer } from 'vite';
+import type { ViteDevServer } from 'vite';
+import { Server } from 'http';
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
-const viteLogger = createLogger();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -22,26 +22,33 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-export async function setupVite(app: Express, server: Server) {
+export async function createViteServer(httpServer: Server): Promise<ViteDevServer> {
+  const isDev = process.env.NODE_ENV !== 'production';
+  
+  if (!isDev) {
+    throw new Error('Vite server should only be created in development mode');
+  }
+
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true,
+    hmr: {
+      server: httpServer
+    },
+    appType: 'spa' as const,
+    server: {
+      middlewareMode: true,
+      hmr: {
+        server: httpServer
+      }
+    }
   };
 
-  const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
-      },
-    },
-    server: serverOptions,
-    appType: "custom",
-  });
+  const vite = await createServer(serverOptions);
+  return vite;
+}
+
+export async function setupVite(app: Express, server: Server) {
+  const vite = await createViteServer(server);
 
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
