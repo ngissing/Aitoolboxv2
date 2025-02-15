@@ -5,8 +5,8 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "npm run build",
-        "outputDirectory": "dist/public"
+        "buildCommand": "npm run build:client",
+        "outputDirectory": "dist"
       }
     },
     {
@@ -24,7 +24,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "dist/public/index.html"
+      "dest": "dist/index.html"
     }
   ],
   "env": {
