@@ -1,9 +1,10 @@
-import ReactPlayer from "react-player/lazy";
+import { useState, useRef, Suspense, lazy } from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Video, videoDurationCategories } from "@shared/schema";
-import { useEffect, useState, useRef, Suspense } from "react";
+
+const ReactPlayer = lazy(() => import("react-player/lazy"));
 
 interface VideoPlayerProps {
   video: Video;

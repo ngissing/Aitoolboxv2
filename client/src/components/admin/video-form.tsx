@@ -29,7 +29,7 @@ import { CalendarIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Lazy load ReactPlayer for rendering
-const ReactPlayer = lazy(() => import('react-player/lazy'));
+const ReactPlayer = lazy(() => import("react-player/lazy"));
 
 // Error boundary for video preview
 class VideoPreviewErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {

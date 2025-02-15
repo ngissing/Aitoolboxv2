@@ -17,15 +17,23 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/index.ts"
+      "dest": "/server/index.ts"
+    },
+    {
+      "src": "/(assets|images|fonts)/(.*)",
+      "dest": "/client/dist/$1/$2"
+    },
+    {
+      "src": "/_next/(.*)",
+      "dest": "/client/dist/_next/$1"
+    },
+    {
+      "src": "/(.+\\.[a-z]+)$",
+      "dest": "/client/dist/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "client/dist/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "client/dist/index.html"
+      "dest": "/client/dist/index.html"
     }
   ]
 } 
