@@ -87,19 +87,32 @@ export async function initializeDatabase() {
   let retryCount = 0;
   let lastError: Error | null = null;
 
+  log('Starting database initialization...');
+  log(`Environment: ${process.env.NODE_ENV}`);
+  log(`Database URL: ${supabaseUrl}`);
+  log(`Service Role Key available: ${!!process.env.SUPABASE_SERVICE_ROLE_KEY}`);
+  log(`Anon Key available: ${!!process.env.SUPABASE_ANON_KEY}`);
+
   while (retryCount < MAX_RETRIES) {
     try {
+      log(`Attempt ${retryCount + 1}/${MAX_RETRIES} to connect to database...`);
+      
       // Test Supabase connection
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('videos')
         .select('count')
         .limit(1);
 
       if (error) {
+        log(`Database query error: ${error.message}`);
+        log(`Error details: ${JSON.stringify(error, null, 2)}`);
         throw error;
       }
 
+      log(`Database query successful. Count result: ${JSON.stringify(data)}`);
+
       // Initialize storage after database connection is established
+      log('Initializing storage...');
       await initializeStorage();
 
       log(`Database connection established successfully after ${retryCount} retries`);
@@ -113,6 +126,11 @@ export async function initializeDatabase() {
         log(`Error stack trace: ${lastError.stack}`);
       }
 
+      // Log additional error details if available
+      if (error && typeof error === 'object') {
+        log(`Full error object: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`);
+      }
+
       if (retryCount < MAX_RETRIES) {
         const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount - 1);
         log(`Retrying in ${delay}ms...`);
@@ -123,6 +141,10 @@ export async function initializeDatabase() {
 
   // If we've exhausted all retries, throw the last error
   log(`Failed to connect to database after ${MAX_RETRIES} attempts`);
+  if (lastError) {
+    log(`Final error: ${lastError.message}`);
+    log(`Final error stack: ${lastError.stack}`);
+  }
   throw lastError;
 }
 

@@ -30,17 +30,24 @@ export function registerRoutes(app: Express): Server {
   // Get all videos
   app.get("/api/videos", async (_req, res) => {
     try {
+      log("Attempting to fetch videos from database...");
       const videos = await storage.getVideos();
+      log(`Successfully retrieved ${videos.length} videos`);
       res.json(videos);
     } catch (error) {
-      log(`Error fetching videos: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      if (error instanceof Error && error.stack) {
-        log(`Error stack trace: ${error.stack}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const stackTrace = error instanceof Error ? error.stack : undefined;
+      
+      log(`Error fetching videos: ${errorMessage}`);
+      if (stackTrace) {
+        log(`Error stack trace: ${stackTrace}`);
       }
       
+      // Always include error details in production for debugging
       res.status(500).json({
         message: "Failed to fetch videos",
-        error: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : 'Unknown error' : undefined,
+        error: errorMessage,
+        stack: stackTrace,
         timestamp: new Date().toISOString()
       });
     }
