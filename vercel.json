@@ -6,7 +6,7 @@
       "use": "@vercel/static-build",
       "config": {
         "buildCommand": "npm run build:client",
-        "outputDirectory": "dist"
+        "outputDirectory": "client/dist"
       }
     },
     {
@@ -24,7 +24,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "dist/index.html"
+      "dest": "client/dist/index.html"
     }
   ],
   "env": {
