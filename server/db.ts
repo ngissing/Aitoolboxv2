@@ -2,11 +2,17 @@ import { createClient } from '@supabase/supabase-js';
 import * as schema from "@shared/schema";
 import { log } from "./vite";
 
-const supabaseUrl = 'https://nhjbqjvqorlavjfhuicy.supabase.co';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://nhjbqjvqorlavjfhuicy.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
+log(`Initializing Supabase client with URL: ${supabaseUrl}`);
+log(`Using service role key: ${!!process.env.SUPABASE_SERVICE_ROLE_KEY}`);
+log(`Using anon key: ${!!process.env.SUPABASE_ANON_KEY}`);
+
 if (!supabaseKey) {
-  throw new Error("SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY must be set in your environment variables");
+  const error = new Error("SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY must be set in your environment variables");
+  log(`Database initialization error: ${error.message}`);
+  throw error;
 }
 
 // Create Supabase client for auth and realtime features
