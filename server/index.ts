@@ -14,12 +14,19 @@ app.use((req, res, next) => {
     'http://localhost:3000',
     'http://localhost:5000',
     'http://localhost:5001',
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+    'https://aitoolboxv2.vercel.app'
   ].filter(Boolean);
 
   const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'production') {
+    // In production, allow the Vercel deployment URL
+    const vercelUrl = process.env.VERCEL_URL;
+    if (vercelUrl && origin?.includes(vercelUrl)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
   }
 
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');

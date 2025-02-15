@@ -28,7 +28,8 @@ export default defineConfig({
       },
     },
     assetsDir: "assets",
-    sourcemap: true
+    sourcemap: true,
+    manifest: true
   },
   optimizeDeps: {
     include: ['react-player'],
