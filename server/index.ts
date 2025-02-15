@@ -1,11 +1,23 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initializeDatabase, closeDatabase } from "./db";
 
 const app = express();
 // Increase body size limit for video uploads (50MB)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Enable CORS for development
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -38,24 +50,82 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = registerRoutes(app);
+  let server: ReturnType<typeof registerRoutes> | undefined;
+  
+  try {
+    // Initialize database first
+    await initializeDatabase();
+    log("Database initialized successfully");
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    log(`Error: ${err.message}`);
-    res.status(status).json({ message });
-    throw err;
-  });
+    // Register API routes after database is ready
+    server = registerRoutes(app);
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // Error handling middleware
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      const stack = process.env.NODE_ENV === 'development' ? err.stack : undefined;
+      
+      log(`Error: ${err.message}`);
+      if (err.stack) {
+        log(`Stack trace: ${err.stack}`);
+      }
+      
+      res.status(status).json({ 
+        message,
+        stack,
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    const isDevelopment = process.env.NODE_ENV === "development";
+    
+    if (isDevelopment) {
+      log("Starting in development mode");
+      await setupVite(app, server);
+      log("API server running on port 5001");
+      log("Visit http://localhost:3000 to access the application");
+    } else {
+      log("Starting in production mode with static file serving");
+      serveStatic(app);
+    }
+
+    const PORT = parseInt(process.env.PORT || "5000", 10);
+    server.listen(PORT, "0.0.0.0", () => {
+      log(`Server running in ${isDevelopment ? "development" : "production"} mode on port ${PORT}`);
+    });
+
+    // Handle graceful shutdown
+    process.on('SIGTERM', async () => {
+      log('SIGTERM signal received: closing HTTP server');
+      if (server) {
+        server.close(() => {
+          log('HTTP server closed');
+        });
+      }
+      await closeDatabase();
+      process.exit(0);
+    });
+
+    process.on('SIGINT', async () => {
+      log('SIGINT signal received: closing HTTP server');
+      if (server) {
+        server.close(() => {
+          log('HTTP server closed');
+        });
+      }
+      await closeDatabase();
+      process.exit(0);
+    });
+
+  } catch (error) {
+    log(`Failed to start server: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    if (server) {
+      server.close(() => {
+        log('HTTP server closed due to error');
+      });
+    }
+    await closeDatabase();
+    process.exit(1);
   }
-
-  const PORT = 5000;
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`serving on port ${PORT}`);
-  });
 })();

@@ -16,21 +16,58 @@ import { Textarea } from "@/components/ui/textarea";
 //import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
-import ReactPlayer from "react-player";
+import { useState, Component, lazy, Suspense } from "react";
+import ReactPlayerStatic from "react-player";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-interface VideoFormProps {
-  onSubmit: (data: InsertVideo) => void;
-  defaultValues?: Video;
-  submitLabel?: string;
+// Lazy load ReactPlayer for rendering
+const ReactPlayer = lazy(() => import('react-player/lazy'));
+
+// Error boundary for video preview
+class VideoPreviewErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Video preview error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full aspect-video bg-muted flex items-center justify-center text-muted-foreground">
+          Video preview unavailable
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
+
+export type VideoFormProps = {
+  onSubmit: (data: InsertVideo) => void;
+  defaultValues?: Partial<InsertVideo>;
+  submitLabel?: string;
+};
 
 // Directly use the insertVideoSchema and add additional validation
 const formSchema = insertVideoSchema.superRefine((data, ctx) => {
-  if (data.url && !ReactPlayer.canPlay(data.url)) {
+  if (data.url && !ReactPlayerStatic.canPlay(data.url)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Must be a valid YouTube, Vimeo, or MP4 URL",
@@ -57,16 +94,17 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
 
   const form = useForm<InsertVideo>({
     resolver: zodResolver(formSchema),
-    defaultValues: defaultValues || {
-      title: "",
-      description: "",
-      url: null,
-      videoData: null,
-      thumbnail: "",
-      platform: "youtube",
-      duration: 0,
-      transcript: "",
-      tags: [],
+    defaultValues: {
+      title: defaultValues?.title || "",
+      description: defaultValues?.description || "",
+      url: defaultValues?.url || null,
+      videoData: defaultValues?.videoData || null,
+      thumbnail: defaultValues?.thumbnail || "https://placehold.co/600x400",
+      platform: (defaultValues?.platform || "youtube") as "youtube" | "vimeo" | "mp4" | "upload",
+      duration: defaultValues?.duration || 300,
+      transcript: defaultValues?.transcript || "Transcript will be added later",
+      tags: defaultValues?.tags || [],
+      videoDate: defaultValues?.videoDate || null,
     },
   });
 
@@ -75,7 +113,7 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
     form.setValue("videoData", null); // Clear any uploaded file data
     setPreviewUrl(url);
 
-    if (ReactPlayer.canPlay(url)) {
+    if (ReactPlayerStatic.canPlay(url)) {
       // Auto-detect platform
       if (url.includes("youtube.com") || url.includes("youtu.be")) {
         form.setValue("platform", "youtube");
@@ -329,6 +367,51 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="videoDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Video Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value || undefined}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormDescription>
+                    Select the date associated with this video
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div className="space-y-6">
@@ -336,12 +419,46 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
               <Card className="p-4">
                 <h3 className="font-medium mb-2">Video Preview</h3>
                 <div className="aspect-video">
-                  <ReactPlayer
-                    url={previewUrl}
-                    width="100%"
-                    height="100%"
-                    controls
-                  />
+                  <VideoPreviewErrorBoundary>
+                    <Suspense fallback={
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <p className="text-muted-foreground">Loading preview...</p>
+                      </div>
+                    }>
+                      <ReactPlayer
+                        url={previewUrl}
+                        width="100%"
+                        height="100%"
+                        controls
+                        playing={false}
+                        onError={(e: any) => {
+                          console.error('Video preview error:', e);
+                          toast({
+                            title: "Preview Error",
+                            description: "Could not load video preview. This doesn't affect the video data.",
+                            variant: "default"
+                          });
+                        }}
+                        config={{
+                          youtube: {
+                            playerVars: { 
+                              origin: window.location.origin,
+                              enablejsapi: 1,
+                              modestbranding: 1,
+                              rel: 0,
+                              host: window.location.origin
+                            }
+                          },
+                          file: {
+                            forceVideo: true,
+                            attributes: {
+                              controlsList: 'nodownload'
+                            }
+                          }
+                        }}
+                      />
+                    </Suspense>
+                  </VideoPreviewErrorBoundary>
                 </div>
               </Card>
             )}
@@ -353,10 +470,15 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
                 <FormItem>
                   <FormLabel>Transcript</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={previewUrl ? 12 : 20} />
+                    <Textarea 
+                      {...field} 
+                      rows={previewUrl ? 12 : 20}
+                      className="font-mono text-sm"
+                      placeholder="Enter the video transcript here. Use blank lines to create paragraph breaks."
+                    />
                   </FormControl>
                   <FormDescription>
-                    Enter the video transcript or description
+                    Enter the video transcript. Use blank lines to separate paragraphs for better readability.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -374,5 +496,29 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
         </Button>
       </form>
     </Form>
+  );
+}
+
+export function VideoFormDialog({ editVideo, updateMutation }: { editVideo: Video | null, updateMutation: any }) {
+  return (
+    <Dialog>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Video</DialogTitle>
+        </DialogHeader>
+        {editVideo && (
+          <VideoForm
+            defaultValues={{
+              ...editVideo,
+              videoData: null // Reset videoData when editing
+            }}
+            onSubmit={(data) =>
+              updateMutation.mutate({ id: editVideo.id, video: data })
+            }
+            submitLabel="Update Video"
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

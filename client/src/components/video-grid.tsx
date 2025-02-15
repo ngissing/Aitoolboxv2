@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Video, videoDurationCategories } from "@shared/schema";
 import { Link } from "wouter";
+import { format } from "date-fns";
 
 function formatDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -14,9 +15,9 @@ function formatDuration(seconds: number): string {
 }
 
 function getDurationCategory(duration: number): string {
-  if (duration <= videoDurationCategories.short.max) return "Short";
-  if (duration <= videoDurationCategories.medium.max) return "Medium";
-  return "Long";
+  if (duration <= videoDurationCategories.short.max) return "Short (0-5m)";
+  if (duration <= videoDurationCategories.medium.max) return "Medium (5-15m)";
+  return "Long (15m+)";
 }
 
 interface VideoGridProps {
@@ -24,9 +25,16 @@ interface VideoGridProps {
 }
 
 export function VideoGrid({ videos }: VideoGridProps) {
+  // Sort videos by videoDate in descending order (newest first)
+  const sortedVideos = [...videos].sort((a, b) => {
+    if (!a.videoDate) return 1;  // Videos without dates go to the end
+    if (!b.videoDate) return -1;
+    return new Date(b.videoDate).getTime() - new Date(a.videoDate).getTime();
+  });
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {videos.map((video) => (
+      {sortedVideos.map((video) => (
         <Link key={video.id} href={`/video/${video.id}`}>
           <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
             <CardContent className="p-4">
@@ -44,6 +52,13 @@ export function VideoGrid({ videos }: VideoGridProps) {
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">{video.platform}</Badge>
                 <Badge variant="outline">{getDurationCategory(video.duration)}</Badge>
+                {video.videoDate && (
+                  <Badge variant="outline" className="ml-auto">
+                    {format(new Date(video.videoDate), "dd MMMM yy")}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
                 {video.tags.slice(0, 2).map((tag) => (
                   <Badge key={tag} variant="secondary">{tag}</Badge>
                 ))}

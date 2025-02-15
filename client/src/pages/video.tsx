@@ -1,9 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, Link } from "wouter";
 import { VideoPlayer } from "@/components/video-player";
 import { type Video } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Home } from "lucide-react";
 
 export default function VideoPage() {
   const [, params] = useRoute("/video/:id");
@@ -35,5 +37,17 @@ export default function VideoPage() {
     return <div>Video not found</div>;
   }
 
-  return <VideoPlayer video={video} />;
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="gap-2">
+            <Home className="h-4 w-4" />
+            Back to Home
+          </Button>
+        </Link>
+      </div>
+      <VideoPlayer video={video} />
+    </div>
+  );
 }

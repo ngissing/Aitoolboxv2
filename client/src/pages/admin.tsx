@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, UseQueryOptions } from "@tanstack/react-query";
 import { VideoForm } from "@/components/admin/video-form";
 import { type Video, type InsertVideo } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,27 +36,71 @@ export default function Admin() {
   const [editVideo, setEditVideo] = useState<Video | null>(null);
   const [deleteVideoId, setDeleteVideoId] = useState<number | null>(null);
 
-  const { data: videos } = useQuery<Video[]>({
+  const queryOptions: UseQueryOptions<Video[], Error> = {
     queryKey: ["/api/videos"],
-  });
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/videos");
+      const data = await res.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid response format");
+      }
+      return data as Video[];
+    }
+  };
+
+  const { data: videos, isLoading, error, refetch } = useQuery<Video[], Error>(queryOptions);
+
+  // Handle error in useEffect instead of during render
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch videos",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   const createMutation = useMutation({
     mutationFn: async (video: InsertVideo) => {
-      const res = await apiRequest("POST", "/api/videos", video);
-      return res.json();
+      // Ensure video data is in the correct format
+      const formattedVideo = {
+        ...video,
+        videoData: video.videoData || null,
+        url: video.url || null,
+      };
+      
+      console.log("Submitting video:", formattedVideo);
+      const res = await apiRequest("POST", "/api/videos", formattedVideo);
+      const data = await res.json();
+      console.log("Response:", data);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
       toast({
         title: "Success",
-        description: "Video added successfully",
+        description: "Video created successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to create video:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create video",
+        variant: "destructive",
       });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, video }: { id: number; video: InsertVideo }) => {
+      console.log('Updating video:', id, video);
       const res = await apiRequest("PATCH", `/api/videos/${id}`, video);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update video');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -65,6 +109,14 @@ export default function Admin() {
       toast({
         title: "Success",
         description: "Video updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to update video:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update video",
+        variant: "destructive",
       });
     },
   });
@@ -81,6 +133,14 @@ export default function Admin() {
         description: "Video deleted successfully",
       });
     },
+    onError: (error) => {
+      console.error("Failed to delete video:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete video",
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -91,52 +151,79 @@ export default function Admin() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Existing Videos</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Platform</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {videos?.map((video) => (
-              <TableRow key={video.id}>
-                <TableCell className="font-medium">{video.title}</TableCell>
-                <TableCell>{video.platform}</TableCell>
-                <TableCell>{video.duration}s</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setEditVideo(video)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setDeleteVideoId(video.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold">Existing Videos</h2>
+          {error && (
+            <Button variant="outline" onClick={() => refetch()}>
+              Retry
+            </Button>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 bg-muted animate-pulse rounded" />
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        ) : error ? (
+          <div className="p-4 border rounded bg-destructive/10 text-destructive">
+            {error.message || "Failed to load videos"}
+          </div>
+        ) : !videos || videos.length === 0 ? (
+          <div className="p-4 border rounded text-muted-foreground">
+            No videos found. Add your first video using the form above.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Platform</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {videos.map((video: Video) => (
+                <TableRow key={video.id}>
+                  <TableCell className="font-medium">{video.title}</TableCell>
+                  <TableCell>{video.platform}</TableCell>
+                  <TableCell>{video.duration}s</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditVideo(video)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteVideoId(video.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
-      <Dialog open={!!editVideo} onOpenChange={() => setEditVideo(null)}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={!!editVideo} onOpenChange={(open) => !open && setEditVideo(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Video</DialogTitle>
           </DialogHeader>
           {editVideo && (
             <VideoForm
-              defaultValues={editVideo}
+              defaultValues={{
+                ...editVideo,
+                videoData: null // Reset videoData when editing
+              }}
               onSubmit={(data) =>
                 updateMutation.mutate({ id: editVideo.id, video: data })
               }

@@ -1,6 +1,5 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Home } from "lucide-react";
 
 export function Header() {
   return (
@@ -8,20 +7,14 @@ export function Header() {
       <div className="max-w-screen-xl mx-auto px-4">
         <div className="flex h-14 items-center justify-between">
           <div className="flex gap-6 items-center">
-            <Link href="/">
-              <Button variant="ghost" size="icon" className="mr-2">
-                <Home className="h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/" className="font-semibold text-lg">
-              AI-Toolbox
+            <Link href="/" className="flex items-center">
+              <img 
+                src="https://i.ibb.co/HD4rGzKj/AItoolbox-logo.png" 
+                alt="AIToolBox" 
+                className="h-10 w-auto"
+              />
             </Link>
           </div>
-          <nav className="flex gap-4">
-            <Link href="/admin" className="text-sm text-muted-foreground hover:text-primary">
-              Admin
-            </Link>
-          </nav>
         </div>
       </div>
     </header>

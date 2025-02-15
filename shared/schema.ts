@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 export const videos = pgTable("videos", {
@@ -8,10 +8,11 @@ export const videos = pgTable("videos", {
   url: text("url"),
   videoData: text("video_data"),  // Store video data as Base64 encoded string
   thumbnail: text("thumbnail").notNull(),
-  platform: text("platform", { enum: ["youtube", "vimeo", "mp4", "upload"] }).notNull(),
+  platform: text("platform").notNull(),
   duration: integer("duration").notNull(), // duration in seconds
   transcript: text("transcript").notNull(),
-  tags: text("tags").array().notNull()
+  tags: text("tags").array().notNull(),
+  videoDate: timestamp("video_date", { withTimezone: true }), // This maps video_date to videoDate
 });
 
 // Create a combined schema that handles both URL and file upload cases
@@ -24,10 +25,17 @@ export const insertVideoSchema = z.object({
     filename: z.string()
   }).nullable(),
   thumbnail: z.string().min(1, "Thumbnail URL is required"),
-  platform: z.enum(["youtube", "vimeo", "mp4", "upload"]),
+  platform: z.string().min(1, "Platform is required"),
   duration: z.number().min(0),
-  transcript: z.string().min(1, "Transcript is required"),
-  tags: z.array(z.string())
+  transcript: z.string()
+    .min(1, "Transcript is required")
+    .transform(text => text.replace(/\r\n/g, '\n')), // Normalize line endings
+  tags: z.array(z.string()),
+  videoDate: z.union([
+    z.string().transform((str) => new Date(str)),
+    z.date(),
+    z.null()
+  ])
 }).refine(
   (data) => {
     // Either URL or videoData must be present

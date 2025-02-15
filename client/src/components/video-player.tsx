@@ -1,9 +1,9 @@
-import ReactPlayer from "react-player";
+import ReactPlayer from "react-player/lazy";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Video, videoDurationCategories } from "@shared/schema";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 
 interface VideoPlayerProps {
   video: Video;
@@ -28,72 +28,91 @@ function getDurationCategory(duration: number): string {
 export function VideoPlayer({ video }: VideoPlayerProps) {
   const [videoSource, setVideoSource] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const blobUrlRef = useRef<string | null>(null);
+  const [isUploadedVideo, setIsUploadedVideo] = useState(false);
 
   useEffect(() => {
-    let blobUrl: string | null = null;
-
     const setupVideo = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+        setIsUploadedVideo(false);
+
+        // Clean up previous blob URL if it exists
+        if (blobUrlRef.current) {
+          URL.revokeObjectURL(blobUrlRef.current);
+          blobUrlRef.current = null;
+        }
+
+        // For YouTube videos
+        if (video.platform === 'youtube') {
+          const youtubeUrl = video.url;
+          if (!youtubeUrl) {
+            throw new Error('YouTube URL is missing');
+          }
+          setVideoSource(youtubeUrl);
+          setIsLoading(false);
+          return;
+        }
+
         // For uploaded videos
         if (video.videoData) {
-          console.log('Raw videoData:', video.videoData);
-
-          let parsedData;
           try {
+            let parsedData = typeof video.videoData === 'string' 
+              ? JSON.parse(video.videoData)
+              : video.videoData;
+
             // Handle double-stringified data
-            if (typeof video.videoData === 'string') {
-              // First parse - converts the string to an object
-              const firstParse = JSON.parse(video.videoData);
-              console.log('After first parse:', firstParse);
-
-              // Check if we need a second parse
-              if (typeof firstParse === 'string') {
-                parsedData = JSON.parse(firstParse);
-                console.log('After second parse:', parsedData);
-              } else {
-                parsedData = firstParse;
-              }
-            } else {
-              parsedData = video.videoData;
+            if (typeof parsedData === 'string') {
+              parsedData = JSON.parse(parsedData);
             }
 
-            if (parsedData?.data) {
-              // Convert base64 to blob
-              const base64Data = parsedData.data;
-              const byteCharacters = atob(base64Data);
-              const byteNumbers = new Array(byteCharacters.length);
-
-              for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-              }
-
-              const byteArray = new Uint8Array(byteNumbers);
-              const blob = new Blob([byteArray], { type: 'video/mp4' });
-
-              // Create blob URL
-              blobUrl = URL.createObjectURL(blob);
-              setVideoSource(blobUrl);
-              console.log('Created blob URL for video data:', blobUrl);
-            } else {
-              console.error('Invalid video data format:', parsedData);
-              setError('Invalid video data format');
+            if (!parsedData?.data) {
+              throw new Error('Video data is missing required data field');
             }
-          } catch (e) {
-            console.error('Error parsing video data:', e);
-            setError('Failed to parse video data');
+
+            // Get the base64 data
+            let base64Data = parsedData.data;
+            
+            // Remove any data URL prefix if present
+            const base64Prefix = 'base64,';
+            const prefixIndex = base64Data.indexOf(base64Prefix);
+            if (prefixIndex !== -1) {
+              base64Data = base64Data.substring(prefixIndex + base64Prefix.length);
+            }
+
+            // Remove any whitespace
+            base64Data = base64Data.trim();
+
+            // Create blob with appropriate MIME type
+            const mimeType = parsedData.filename?.toLowerCase().endsWith('.mp4') 
+              ? 'video/mp4' 
+              : 'video/webm';
+
+            // Convert base64 to blob using Fetch API
+            const response = await fetch(`data:${mimeType};base64,${base64Data}`);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            blobUrlRef.current = blobUrl;
+            setVideoSource(blobUrl);
+            setIsUploadedVideo(true);
+          } catch (err) {
+            console.error('Error processing video data:', err);
+            throw new Error('Failed to process video data');
           }
-        }
-        // For URL-based videos
-        else if (video.url) {
+        } else if (video.url) {
+          // For direct URL videos (mp4 or other)
           setVideoSource(video.url);
-          console.log('Set video source from URL:', video.url);
+        } else {
+          throw new Error('No video source available');
         }
-        else {
-          setError('No video source available');
-        }
-      } catch (e) {
-        console.error('Error setting video source:', e);
-        setError('Failed to load video');
+
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error setting up video:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load video');
+        setIsLoading(false);
       }
     };
 
@@ -101,9 +120,9 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
 
     // Cleanup function
     return () => {
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-        console.log('Revoked blob URL');
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
       }
     };
   }, [video]);
@@ -117,7 +136,7 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
       );
     }
 
-    if (!videoSource) {
+    if (isLoading || !videoSource) {
       return (
         <div className="aspect-video bg-muted flex items-center justify-center">
           <p className="text-muted-foreground">Loading video...</p>
@@ -125,18 +144,66 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
       );
     }
 
+    if (isUploadedVideo) {
+      return (
+        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+          <video
+            src={videoSource}
+            className="w-full h-full"
+            controls
+            controlsList="nodownload"
+            onError={(e) => {
+              const videoElement = e.target as HTMLVideoElement;
+              const errorMessage = videoElement.error?.message || 'Unknown error';
+              console.error('Video playback error:', errorMessage);
+              setError(`Failed to play video: ${errorMessage}`);
+            }}
+          >
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      );
+    }
+
     return (
       <div className="aspect-video bg-black rounded-lg overflow-hidden">
-        <ReactPlayer
-          url={videoSource}
-          width="100%"
-          height="100%"
-          controls
-          onError={(e) => {
-            console.error('ReactPlayer error:', e);
-            setError('Failed to play video. Please try again later.');
-          }}
-        />
+        <Suspense fallback={
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <p className="text-muted-foreground">Loading video player...</p>
+          </div>
+        }>
+          <ReactPlayer
+            url={videoSource}
+            width="100%"
+            height="100%"
+            controls
+            playing={false}
+            onError={(e: Error) => {
+              console.error('ReactPlayer error:', e);
+              setError('Failed to play video. Please try again later.');
+            }}
+            config={{
+              file: {
+                attributes: {
+                  controlsList: 'nodownload'
+                }
+              },
+              youtube: {
+                playerVars: { 
+                  origin: window.location.origin,
+                  enablejsapi: 1,
+                  modestbranding: 1,
+                  rel: 0
+                }
+              }
+            }}
+            fallback={
+              <div className="w-full h-full bg-muted flex items-center justify-center">
+                <p className="text-muted-foreground">Unable to load video player. Please try refreshing the page.</p>
+              </div>
+            }
+          />
+        </Suspense>
       </div>
     );
   };
@@ -163,7 +230,15 @@ export function VideoPlayer({ video }: VideoPlayerProps) {
         <div className="p-4">
           <h2 className="text-xl font-semibold mb-4">Transcript</h2>
           <ScrollArea className="h-[calc(100vh-16rem)]">
-            <p className="whitespace-pre-wrap text-sm">{video.transcript}</p>
+            <div className="whitespace-pre-wrap text-sm">
+              {video.transcript.split('\n').map((paragraph, index) => (
+                paragraph.trim() ? (
+                  <p key={index} className="mb-4">
+                    {paragraph}
+                  </p>
+                ) : <br key={index} />
+              ))}
+            </div>
           </ScrollArea>
         </div>
       </Card>

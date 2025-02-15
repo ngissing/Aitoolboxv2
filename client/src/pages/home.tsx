@@ -5,8 +5,30 @@ import { VideoFilters } from "@/components/video-filters";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+
+async function fetchVideos(): Promise<Video[]> {
+  const response = await fetch("/api/videos");
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMessage = "Failed to fetch videos";
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMessage = errorData.message || errorMessage;
+      if (errorData.stack) {
+        console.error("Server error stack:", errorData.stack);
+      }
+    } catch {
+      // If we can't parse the error as JSON, use the raw text
+      errorMessage = errorText;
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
 
 export default function Home() {
+  const { toast } = useToast();
   const [filters, setFilters] = useState({
     platform: null as string | null,
     duration: null as string | null,
@@ -15,7 +37,16 @@ export default function Home() {
   });
 
   const { data: videos, isLoading } = useQuery<Video[]>({
-    queryKey: ["/api/videos"],
+    queryKey: ["videos"],
+    queryFn: fetchVideos,
+    retry: false,
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch videos",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleFilterChange = (key: string, value: any) => {
@@ -56,7 +87,7 @@ export default function Home() {
     }
 
     return true;
-  });
+  }) || [];
 
   if (isLoading) {
     return (
