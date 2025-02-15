@@ -1,4 +1,4 @@
-import { useState, useRef, Suspense, lazy } from "react";
+import { useState, useRef, Suspense, lazy, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
