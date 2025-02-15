@@ -5,8 +5,8 @@
       "src": "client/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "cd client && npm install && npm run build",
-        "outputDirectory": "client/dist"
+        "buildCommand": "cd .. && npm run build:client",
+        "outputDirectory": "dist/public"
       }
     },
     {
@@ -21,19 +21,22 @@
     },
     {
       "src": "/(assets|images|fonts)/(.*)",
-      "dest": "/client/dist/$1/$2"
+      "dest": "/dist/public/$1/$2"
     },
     {
       "src": "/_next/(.*)",
-      "dest": "/client/dist/_next/$1"
+      "dest": "/dist/public/_next/$1"
     },
     {
       "src": "/(.+\\.[a-z]+)$",
-      "dest": "/client/dist/$1"
+      "dest": "/dist/public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/client/dist/index.html"
+      "dest": "/dist/public/index.html"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 } 
