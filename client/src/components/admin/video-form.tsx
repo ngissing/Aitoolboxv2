@@ -70,7 +70,7 @@ const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   url: z.string().nullable(),
-  videoData: z.object({
+  video_data: z.object({
     data: z.string(),
     filename: z.string()
   }).nullable(),
@@ -79,7 +79,7 @@ const formSchema = z.object({
   duration: z.number().min(0),
   transcript: z.string().min(1, "Transcript is required"),
   tags: z.array(z.string()),
-  videoDate: z.union([
+  video_date: z.union([
     z.string().transform((str) => new Date(str)),
     z.date(),
     z.null()
@@ -118,19 +118,19 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
       title: defaultValues?.title || "",
       description: defaultValues?.description || "",
       url: defaultValues?.url || null,
-      videoData: defaultValues?.videoData || null,
+      video_data: defaultValues?.video_data || null,
       thumbnail: defaultValues?.thumbnail || "https://placehold.co/600x400",
       platform: (defaultValues?.platform || "youtube") as "youtube" | "vimeo" | "mp4" | "upload",
       duration: defaultValues?.duration || 300,
       transcript: defaultValues?.transcript || "Transcript will be added later",
       tags: defaultValues?.tags || [],
-      videoDate: defaultValues?.videoDate || null,
+      video_date: defaultValues?.video_date || null,
     },
   });
 
   const handleUrlChange = (url: string) => {
     form.setValue("url", url || null);
-    form.setValue("videoData", null); // Clear any uploaded file data
+    form.setValue("video_data", null); // Clear any uploaded file data
     setPreviewUrl(url);
 
     if (ReactPlayerStatic.canPlay(url)) {
@@ -186,7 +186,7 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
         readNextChunk(processedChunks * CHUNK_SIZE);
       } else {
         // All chunks processed
-        form.setValue("videoData", {
+        form.setValue("video_data", {
           data: base64Data.split(",")[1], // Remove data URL prefix
           filename: file.name
         });
@@ -400,7 +400,7 @@ export function VideoForm({ onSubmit, defaultValues, submitLabel = "Add Video" }
 
             <FormField
               control={form.control}
-              name="videoDate"
+              name="video_date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Video Date</FormLabel>
@@ -539,7 +539,8 @@ export function VideoFormDialog({ editVideo, updateMutation }: { editVideo: Vide
           <VideoForm
             defaultValues={{
               ...editVideo,
-              videoData: null // Reset videoData when editing
+              video_data: null, // Reset video_data when editing
+              video_date: editVideo.video_date ? new Date(editVideo.video_date) : null
             }}
             onSubmit={(data) =>
               updateMutation.mutate({ id: editVideo.id, video: data })

@@ -64,9 +64,9 @@ export default function Admin() {
   const createMutation = useMutation({
     mutationFn: async (video: InsertVideo) => {
       // Ensure video data is in the correct format
-      const formattedVideo = {
+      const formattedVideo: InsertVideo = {
         ...video,
-        videoData: video.videoData || null,
+        video_data: video.video_data || null,
         url: video.url || null,
       };
       
@@ -222,7 +222,8 @@ export default function Admin() {
             <VideoForm
               defaultValues={{
                 ...editVideo,
-                videoData: null // Reset videoData when editing
+                video_data: null, // Reset video_data when editing
+                video_date: editVideo.video_date ? new Date(editVideo.video_date) : null
               }}
               onSubmit={(data) =>
                 updateMutation.mutate({ id: editVideo.id, video: data })

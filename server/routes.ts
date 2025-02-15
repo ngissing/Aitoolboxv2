@@ -20,7 +20,7 @@ const updateVideoSchema = z.object({
   transcript: z.string().min(1, "Transcript is required").optional(),
   tags: z.array(z.string()).optional(),
   thumbnail: z.string().min(1, "Thumbnail URL is required").optional(),
-  videoDate: z.union([
+  video_date: z.union([
     z.string().transform((str) => new Date(str)),
     z.date()
   ]).optional()
