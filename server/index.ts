@@ -10,25 +10,27 @@ app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
 // Enable CORS
 app.use((req, res, next) => {
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5000',
-    'http://localhost:5001',
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-    'https://aitoolboxv2.vercel.app'
-  ].filter(Boolean);
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const vercelUrl = process.env.VERCEL_URL;
+  const origin = req.headers.origin || '*';
 
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
+  if (isDevelopment) {
+    // In development, be more permissive
     res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (process.env.NODE_ENV === 'production') {
-    // In production, allow the Vercel deployment URL
-    const vercelUrl = process.env.VERCEL_URL;
-    if (vercelUrl && origin?.includes(vercelUrl)) {
+  } else {
+    // In production, only allow the Vercel deployment URL and our main domain
+    const allowedOrigins = [
+      vercelUrl ? `https://${vercelUrl}` : null,
+      'https://aitoolboxv2.vercel.app',
+      'https://www.aitoolboxv2.vercel.app'
+    ].filter(Boolean) as string[];
+
+    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowed => origin.endsWith(allowed))) {
       res.setHeader('Access-Control-Allow-Origin', origin);
     }
   }
 
+  // Common headers for both environments
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
