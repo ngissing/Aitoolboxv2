@@ -56,26 +56,42 @@ async function initializeStorage() {
         .createBucket('videos', {
           public: true, // Make the bucket public
           fileSizeLimit: 52428800, // 50MB in bytes
-          allowedMimeTypes: ['video/mp4']
+          allowedMimeTypes: ['video/mp4', 'video/webm']
         });
 
       if (createError) {
         throw createError;
       }
-      
-      // Set up storage policies for the videos bucket
+
+      // Update bucket policies to allow public access
       const { error: policyError } = await supabase
         .storage
-        .from('videos')
-        .createSignedUrls(['dummy.txt'], 60); // This is just to test the bucket permissions
+        .updateBucket('videos', {
+          public: true,
+          allowedMimeTypes: ['video/mp4', 'video/webm'],
+          fileSizeLimit: 52428800
+        });
 
       if (policyError) {
-        log(`Warning: Could not verify bucket permissions: ${policyError.message}`);
+        log(`Warning: Could not update bucket policies: ${policyError.message}`);
       }
       
-      log('Created videos storage bucket');
+      log('Created and configured videos storage bucket');
     } else {
-      log('Videos storage bucket already exists');
+      // Update existing bucket policies
+      const { error: policyError } = await supabase
+        .storage
+        .updateBucket('videos', {
+          public: true,
+          allowedMimeTypes: ['video/mp4', 'video/webm'],
+          fileSizeLimit: 52428800
+        });
+
+      if (policyError) {
+        log(`Warning: Could not update bucket policies: ${policyError.message}`);
+      }
+      
+      log('Updated videos storage bucket configuration');
     }
   } catch (error) {
     log(`Error initializing storage: ${error instanceof Error ? error.message : 'Unknown error'}`);

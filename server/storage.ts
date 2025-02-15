@@ -15,40 +15,65 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   async getVideos(): Promise<Video[]> {
     try {
+      log('Attempting to fetch videos from database...');
       const { data: allVideos, error } = await supabase
         .from('videos')
         .select('*');
 
-      if (error) throw error;
+      if (error) {
+        log(`Database query error: ${error.message}`);
+        log(`Error details: ${JSON.stringify(error, null, 2)}`);
+        throw error;
+      }
+
+      if (!allVideos) {
+        log('No videos found in database');
+        return [];
+      }
+      
+      log(`Found ${allVideos.length} videos in database`);
       
       // Process videos to get storage URLs for uploaded videos
       const processedVideos = await Promise.all(allVideos.map(async video => {
-        const baseVideo = {
-          ...video,
-          video_date: video.video_date // Map snake_case to camelCase
-        };
+        try {
+          const baseVideo = {
+            ...video,
+            video_date: video.video_date
+          };
 
-        if (video.platform === 'upload' && video.video_data) {
-          try {
-            const { data: { publicUrl } } = supabase
-              .storage
-              .from(BUCKET_NAME)
-              .getPublicUrl(video.video_data);
-            
-            return {
-              ...baseVideo,
-              url: publicUrl,
-              video_data: null // Clear the video data as we now have the URL
-            };
-          } catch (err) {
-            log(`Error getting public URL for video ${video.id}: ${err instanceof Error ? err.message : 'Unknown error'}`);
-            return baseVideo;
+          if (video.platform === 'upload' && video.video_data) {
+            try {
+              log(`Getting public URL for uploaded video ${video.id}`);
+              const { data: { publicUrl } } = supabase
+                .storage
+                .from(BUCKET_NAME)
+                .getPublicUrl(video.video_data);
+              
+              log(`Got public URL for video ${video.id}: ${publicUrl}`);
+              return {
+                ...baseVideo,
+                url: publicUrl,
+                video_data: null
+              };
+            } catch (err) {
+              log(`Error getting public URL for video ${video.id}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+              if (err instanceof Error && err.stack) {
+                log(`Stack trace: ${err.stack}`);
+              }
+              return baseVideo;
+            }
           }
+          return baseVideo;
+        } catch (err) {
+          log(`Error processing video ${video.id}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          if (err instanceof Error && err.stack) {
+            log(`Stack trace: ${err.stack}`);
+          }
+          return video;
         }
-        return baseVideo;
       }));
       
-      log(`Retrieved ${processedVideos.length} videos from database`);
+      log(`Successfully processed ${processedVideos.length} videos`);
       return processedVideos;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -57,6 +82,11 @@ export class DatabaseStorage implements IStorage {
       log(`Error retrieving videos: ${errorMessage}`);
       if (stackTrace) {
         log(`Stack trace: ${stackTrace}`);
+      }
+      
+      // Log the full error object for debugging
+      if (error && typeof error === 'object') {
+        log(`Full error object: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`);
       }
       
       throw new Error(`Failed to retrieve videos: ${errorMessage}`);
