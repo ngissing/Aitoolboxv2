@@ -17,12 +17,16 @@ const updateVideoSchema = z.object({
   }).nullable().optional(),
   platform: z.string().min(1, "Platform is required").optional(),
   duration: z.number().min(0).optional(),
-  transcript: z.string().min(1, "Transcript is required").optional(),
+  transcript: z.string()
+    .min(1, "Transcript is required")
+    .transform((text: string) => text.replace(/\r\n/g, '\n'))
+    .optional(),
   tags: z.array(z.string()).optional(),
   thumbnail: z.string().min(1, "Thumbnail URL is required").optional(),
   video_date: z.union([
-    z.string().transform((str) => new Date(str)),
-    z.date()
+    z.string().transform((str: string) => new Date(str)),
+    z.date(),
+    z.null()
   ]).optional()
 });
 

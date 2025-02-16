@@ -15,7 +15,7 @@ if (!supabaseKey) {
   throw error;
 }
 
-let supabase: SupabaseClient;
+export let supabase: SupabaseClient;
 
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000; // 1 second

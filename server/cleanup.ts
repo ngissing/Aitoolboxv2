@@ -2,6 +2,8 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 import { initializeDatabase } from './db';
 import { log } from './vite';
+import { supabase } from "./db";
+import type { FileObject } from '@supabase/storage-js';
 
 // Load environment variables
 config({ path: resolve(__dirname, '../.env') });
@@ -56,6 +58,65 @@ export async function cleanup() {
     }
 
     log('Cleanup completed successfully');
+  } catch (error) {
+    log(`Error during cleanup: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw error;
+  }
+}
+
+export async function cleanupUploads() {
+  try {
+    // Delete uploaded videos from the database
+    const { data: videos, error: dbError } = await supabase
+      .from('videos')
+      .delete()
+      .eq('platform', 'upload')
+      .select();
+
+    if (dbError) throw dbError;
+    
+    log(`Deleted ${videos?.length || 0} uploaded videos from database`);
+
+    // Get list of files in storage
+    const { data: files, error: listError } = await supabase
+      .storage
+      .from('videos')
+      .list();
+
+    if (listError) throw listError;
+
+    if (!files || files.length === 0) {
+      log('No files found in storage');
+      return;
+    }
+
+    log(`Found ${files.length} files in storage`);
+
+    // Delete each file
+    const deletePromises = files.map(async (file: FileObject) => {
+      try {
+        const { error } = await supabase
+          .storage
+          .from('videos')
+          .remove([file.name]);
+
+        if (error) {
+          log(`Error deleting file ${file.name}: ${error.message}`);
+          return false;
+        }
+        
+        log(`Deleted file ${file.name}`);
+        return true;
+      } catch (error) {
+        log(`Error deleting file ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        return false;
+      }
+    });
+
+    const results = await Promise.all(deletePromises);
+    const deletedCount = results.filter(Boolean).length;
+    
+    log(`Successfully deleted ${deletedCount} files from storage`);
   } catch (error) {
     log(`Error during cleanup: ${error instanceof Error ? error.message : 'Unknown error'}`);
     throw error;
