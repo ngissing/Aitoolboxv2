@@ -34,14 +34,14 @@ export class DatabaseStorage implements IStorage {
       log(`Found ${allVideos.length} videos in database`);
       
       // Process videos to get storage URLs for uploaded videos
-      const processedVideos = await Promise.all(allVideos.map(async video => {
+      const processedVideos = await Promise.all(allVideos.map(async (video: Video) => {
         try {
           const baseVideo = {
             ...video,
             video_date: video.video_date
           };
 
-          if (video.platform === 'upload' && video.video_data) {
+          if (video.platform === 'upload' && typeof video.video_data === 'string') {
             try {
               log(`Getting public URL for uploaded video ${video.id}`);
               const { data: { publicUrl } } = supabase
@@ -250,7 +250,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       // If it's an uploaded video, delete the file from storage
-      if (video.platform === 'upload' && video.video_data) {
+      if (video.platform === 'upload' && typeof video.video_data === 'string') {
         log(`Attempting to delete video file from storage: ${video.video_data}`);
         const { error: deleteStorageError } = await supabase
           .storage

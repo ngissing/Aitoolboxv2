@@ -11,7 +11,7 @@ config({ path: resolve(__dirname, '../.env') });
 export async function cleanup() {
   try {
     log('Starting cleanup...');
-    const { supabase } = await initializeDatabase();
+    await initializeDatabase();
 
     // Delete all videos from storage
     const { data: storageData, error: storageError } = await supabase
@@ -37,7 +37,7 @@ export async function cleanup() {
         const { error: deleteError } = await supabase
           .storage
           .from(bucket.name)
-          .remove(files.map(file => file.name));
+          .remove(files.map((file: FileObject) => file.name));
 
         if (deleteError) {
           log(`Error deleting files from bucket ${bucket.name}: ${deleteError.message}`);
