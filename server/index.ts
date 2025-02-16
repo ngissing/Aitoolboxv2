@@ -114,28 +114,48 @@ const initializeApp = async () => {
 registerRoutes(app);
 
 // Error handling middleware
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
-  const stack = process.env.NODE_ENV === 'development' ? err.stack : undefined;
   
-  // Always log the full error details
-  log(`Error: ${err.message}`);
-  if (err.stack) {
-    log(`Stack trace: ${err.stack}`);
-  }
+  // Enhanced error logging
+  log(`Error occurred during ${req.method} ${req.path}`);
+  log(`Error message: ${message}`);
+  log(`Error stack: ${err.stack || 'No stack trace available'}`);
+  log(`Request headers: ${JSON.stringify(req.headers)}`);
+  log(`Request query: ${JSON.stringify(req.query)}`);
+  log(`Request body: ${JSON.stringify(req.body)}`);
   
-  // In production, always include error details for debugging
-  res.status(status).json({ 
+  // Gather detailed environment information
+  const environmentInfo = {
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    VERCEL_URL: process.env.VERCEL_URL,
+    supabaseUrl: process.env.SUPABASE_URL,
+    hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    isInitialized,
+    initializationError: initializationError ? {
+      message: initializationError.message,
+      stack: initializationError.stack
+    } : null
+  };
+
+  log(`Environment info: ${JSON.stringify(environmentInfo, null, 2)}`);
+  
+  // Always include detailed error information in the response
+  res.status(status).json({
     message,
     error: err.message,
     stack: err.stack,
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    initialized: isInitialized,
-    supabaseUrl: process.env.SUPABASE_URL,
-    hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    request: {
+      method: req.method,
+      path: req.path,
+      headers: req.headers,
+      query: req.query
+    },
+    environment: environmentInfo
   });
 });
 
