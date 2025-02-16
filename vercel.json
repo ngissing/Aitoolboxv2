@@ -14,10 +14,9 @@
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
-          "shared/**",
-          "client/dist/**",
           "dist/**",
-          "server/**"
+          "shared/**",
+          "client/dist/**"
         ]
       }
     }
@@ -34,14 +33,14 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "/dist/index.js"
+      "dest": "dist/index.js"
     },
     {
-      "src": "/(assets|images)/.*",
+      "src": "/assets/(.*)",
+      "dest": "/client/dist/assets/$1",
       "headers": {
         "cache-control": "public, max-age=31536000, immutable"
-      },
-      "continue": true
+      }
     },
     {
       "handle": "filesystem"
