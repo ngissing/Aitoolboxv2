@@ -24,12 +24,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "dist/index.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
+      "dest": "dist/index.js"
     },
     {
       "src": "/assets/(.*)",
@@ -43,10 +38,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html",
-      "headers": {
-        "cache-control": "public, max-age=0, must-revalidate"
-      }
+      "dest": "/index.html"
     }
   ],
   "env": {
