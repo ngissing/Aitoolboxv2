@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase, closeDatabase } from "./db";
+import { createServer } from "http";
 
 const app = express();
 // Increase body size limit for video uploads (50MB)
@@ -71,83 +72,91 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
-  let server: ReturnType<typeof registerRoutes> | undefined;
-  
-  try {
-    // Initialize database first
-    await initializeDatabase();
-    log("Database initialized successfully");
+// Initialize database and register routes
+let isInitialized = false;
+let initializationError: Error | null = null;
 
-    // Register API routes after database is ready
-    server = registerRoutes(app);
-
-    // Error handling middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      const stack = process.env.NODE_ENV === 'development' ? err.stack : undefined;
-      
-      log(`Error: ${err.message}`);
-      if (err.stack) {
-        log(`Stack trace: ${err.stack}`);
-      }
-      
-      res.status(status).json({ 
-        message,
-        stack,
-        timestamp: new Date().toISOString()
-      });
-    });
-
-    const isDevelopment = process.env.NODE_ENV === "development";
-    
-    if (isDevelopment) {
-      log("Starting in development mode");
-      await setupVite(app, server);
-      log("API server running on port 5001");
-      log("Visit http://localhost:3000 to access the application");
-    } else {
-      log("Starting in production mode with static file serving");
-      serveStatic(app);
-    }
-
-    const PORT = parseInt(process.env.PORT || "5000", 10);
-    server.listen(PORT, "0.0.0.0", () => {
-      log(`Server running in ${isDevelopment ? "development" : "production"} mode on port ${PORT}`);
-    });
-
-    // Handle graceful shutdown
-    process.on('SIGTERM', async () => {
-      log('SIGTERM signal received: closing HTTP server');
-      if (server) {
-        server.close(() => {
-          log('HTTP server closed');
-        });
-      }
-      await closeDatabase();
-      process.exit(0);
-    });
-
-    process.on('SIGINT', async () => {
-      log('SIGINT signal received: closing HTTP server');
-      if (server) {
-        server.close(() => {
-          log('HTTP server closed');
-        });
-      }
-      await closeDatabase();
-      process.exit(0);
-    });
-
-  } catch (error) {
-    log(`Failed to start server: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    if (server) {
-      server.close(() => {
-        log('HTTP server closed due to error');
-      });
-    }
-    await closeDatabase();
-    process.exit(1);
+const initializeApp = async () => {
+  if (initializationError) {
+    throw initializationError;
   }
-})();
+  
+  if (!isInitialized) {
+    try {
+      log("Starting initialization...");
+      log(`Environment: ${process.env.NODE_ENV}`);
+      log(`Supabase URL: ${process.env.SUPABASE_URL}`);
+      log(`Supabase Anon Key available: ${!!process.env.SUPABASE_ANON_KEY}`);
+      log(`Supabase Service Role Key available: ${!!process.env.SUPABASE_SERVICE_ROLE_KEY}`);
+      
+      await initializeDatabase();
+      log("Database initialized successfully");
+      isInitialized = true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const stackTrace = error instanceof Error ? error.stack : undefined;
+      
+      log(`Database initialization error: ${errorMessage}`);
+      if (stackTrace) {
+        log(`Error stack trace: ${stackTrace}`);
+      }
+      
+      initializationError = error instanceof Error 
+        ? error 
+        : new Error('Failed to initialize database');
+        
+      throw initializationError;
+    }
+  }
+};
+
+// Register routes
+registerRoutes(app);
+
+// Error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  const stack = process.env.NODE_ENV === 'development' ? err.stack : undefined;
+  
+  // Always log the full error details
+  log(`Error: ${err.message}`);
+  if (err.stack) {
+    log(`Stack trace: ${err.stack}`);
+  }
+  
+  // In production, always include error details for debugging
+  res.status(status).json({ 
+    message,
+    error: err.message,
+    stack: err.stack,
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    initialized: isInitialized,
+    supabaseUrl: process.env.SUPABASE_URL,
+    hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+  });
+});
+
+// Handle static files in production
+if (process.env.NODE_ENV === 'production') {
+  log("Starting in production mode with static file serving");
+  serveStatic(app);
+} else {
+  log("Starting in development mode");
+  setupVite(app, createServer(app));
+}
+
+// Initialize database before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await initializeApp();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Export the Express app for Vercel
+export default app;

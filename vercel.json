@@ -15,7 +15,8 @@
       "config": {
         "includeFiles": [
           "shared/**",
-          "client/dist/**"
+          "client/dist/**",
+          "server/**"
         ]
       }
     }

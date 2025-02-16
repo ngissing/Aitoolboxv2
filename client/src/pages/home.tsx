@@ -5,23 +5,45 @@ import { VideoFilters } from "@/components/video-filters";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 async function fetchVideos(): Promise<Video[]> {
   const response = await fetch("/api/videos");
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = "Failed to fetch videos";
+    let errorData = {
+      message: "Failed to fetch videos",
+      error: null as string | null,
+      stack: null as string | null,
+      environment: null as string | null,
+      initialized: false,
+      supabaseUrl: null as string | null,
+      hasAnonKey: false,
+      hasServiceKey: false
+    };
+
     try {
-      const errorData = JSON.parse(errorText);
-      errorMessage = errorData.message || errorMessage;
-      if (errorData.stack) {
-        console.error("Server error stack:", errorData.stack);
-      }
+      const parsed = JSON.parse(errorText);
+      errorData = { ...errorData, ...parsed };
+      
+      // Log detailed error information
+      console.error("Server Error Details:", {
+        message: errorData.message,
+        error: errorData.error,
+        stack: errorData.stack,
+        environment: errorData.environment,
+        initialized: errorData.initialized,
+        supabaseUrl: errorData.supabaseUrl,
+        hasAnonKey: errorData.hasAnonKey,
+        hasServiceKey: errorData.hasServiceKey
+      });
     } catch {
       // If we can't parse the error as JSON, use the raw text
-      errorMessage = errorText;
+      errorData.message = errorText;
     }
-    throw new Error(errorMessage);
+
+    throw new Error(JSON.stringify(errorData));
   }
   return response.json();
 }
@@ -34,7 +56,7 @@ export default function Home() {
     search: "" as string
   });
 
-  const { data: videos, isLoading } = useQuery<Video[]>({
+  const { data: videos, isLoading, error } = useQuery<Video[], Error>({
     queryKey: ["videos"],
     queryFn: fetchVideos,
     retry: false
@@ -79,6 +101,45 @@ export default function Home() {
 
     return true;
   }) || [];
+
+  if (error) {
+    let errorDetails = {
+      message: error.message,
+      environment: null,
+      initialized: false,
+      hasAnonKey: false,
+      hasServiceKey: false
+    };
+
+    try {
+      errorDetails = { ...errorDetails, ...JSON.parse(error.message) };
+    } catch {
+      // If parsing fails, use the error message as is
+    }
+
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error Loading Videos</AlertTitle>
+        <AlertDescription>
+          <div className="mt-2">
+            <p>{errorDetails.message}</p>
+            {errorDetails.environment && (
+              <div className="mt-4 text-sm opacity-80">
+                <p>Environment: {errorDetails.environment}</p>
+                <p>Database Initialized: {errorDetails.initialized ? "Yes" : "No"}</p>
+                <p>Database Configuration:</p>
+                <ul className="list-disc list-inside ml-4">
+                  <li>Anon Key: {errorDetails.hasAnonKey ? "Available" : "Missing"}</li>
+                  <li>Service Key: {errorDetails.hasServiceKey ? "Available" : "Missing"}</li>
+                </ul>
+              </div>
+            )}
+          </div>
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   if (isLoading) {
     return (

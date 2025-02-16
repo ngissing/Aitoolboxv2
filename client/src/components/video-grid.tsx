@@ -43,6 +43,11 @@ export function VideoGrid({ videos }: VideoGridProps) {
                   src={video.thumbnail}
                   alt={video.title}
                   className="rounded-md object-cover w-full h-full"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    console.error(`Failed to load thumbnail for video ${video.id}: ${img.src}`);
+                    img.src = "https://placehold.co/600x400/png?text=Thumbnail+Unavailable";
+                  }}
                 />
                 <Badge className="absolute bottom-2 right-2">
                   {formatDuration(video.duration)}
