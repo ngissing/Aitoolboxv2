@@ -24,12 +24,23 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-player': ['react-player'],
+          'vendor': [
+            'react',
+            'react-dom',
+            'wouter',
+            '@tanstack/react-query',
+            'framer-motion'
+          ]
         },
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]'
       },
     },
     assetsDir: "assets",
     sourcemap: true,
-    manifest: true
+    manifest: true,
+    chunkSizeWarningLimit: 1000
   },
   optimizeDeps: {
     include: ['react-player'],
