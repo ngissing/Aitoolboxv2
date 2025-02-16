@@ -10,13 +10,13 @@
       }
     },
     {
-      "src": "server/index.ts",
+      "src": "dist/index.js",
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
           "shared/**",
           "client/dist/**",
-          "server/**"
+          "dist/**"
         ]
       }
     }
@@ -33,7 +33,7 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "/server/index.ts"
+      "dest": "/dist/index.js"
     },
     {
       "src": "/(assets|images)/.*",
