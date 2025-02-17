@@ -11,10 +11,10 @@
     "build:client": "cd client && npm run build",
     "build:server": "tsc --project tsconfig.server.json",
     "bundle:server": "esbuild server/index.ts --platform=node --bundle --format=esm --outdir=dist --external:lightningcss",
-    "bundle:server:vercel": "esbuild server/*.ts --platform=node --bundle --format=esm --outdir=dist --external:express --external:@supabase/supabase-js --external:lightningcss --sourcemap --allow-overwrite",
+    "bundle:server:vercel": "esbuild server/index.ts --platform=node --bundle --format=esm --outfile=dist/server.js --external:express --external:@supabase/supabase-js --external:lightningcss --external:react --external:react-dom --minify --sourcemap",
     "build": "npm-run-all install:all build:client build:server bundle:server",
-    "build:vercel": "npm run install:all && npm run build:client && npm run build:server && npm run bundle:server:vercel && cp -r client/dist/* dist/",
-    "start": "cross-env NODE_ENV=production node -r dotenv/config dist/index.js",
+    "build:vercel": "npm run install:all && npm run build:client && npm run build:server && npm run bundle:server:vercel && cp -r client/dist/* dist/ && rm -rf client/dist",
+    "start": "cross-env NODE_ENV=production node -r dotenv/config dist/server.js",
     "check": "tsc",
     "generate:types": "supabase gen types typescript --project-id nhjbqjvqorlavjfhuicy > shared/supabase.types.ts",
     "postinstall": "npm run install:client"

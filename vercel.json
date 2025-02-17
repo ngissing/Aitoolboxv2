@@ -6,7 +6,7 @@
       "use": "@vercel/static-build",
       "config": {
         "buildCommand": "npm run build:vercel",
-        "outputDirectory": "client/dist"
+        "outputDirectory": "dist"
       }
     },
     {
@@ -23,7 +23,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "dist/index.js"
+      "dest": "/server.js"
     },
     {
       "src": "^/assets/(.*)",
