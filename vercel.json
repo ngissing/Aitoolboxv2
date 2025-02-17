@@ -1,16 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "npm run build:vercel",
   "builds": [
     {
-      "src": "dist/index.js",
+      "src": "package.json",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": [
-          "dist/**",
-          "shared/**",
-          "client/dist/**"
-        ]
+        "buildCommand": "npm run build:vercel"
       }
     }
   ],
@@ -20,15 +15,18 @@
       "dest": "dist/index.js"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/client/dist/assets/$1"
+      "src": "^/assets/(.*)",
+      "dest": "client/dist/assets/$1",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable"
+      }
     },
     {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/client/dist/index.html"
+      "dest": "client/dist/index.html"
     }
   ],
   "env": {
