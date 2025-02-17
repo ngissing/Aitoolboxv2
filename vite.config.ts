@@ -18,33 +18,51 @@ export default defineConfig({
   },
   root: path.resolve(__dirname, "client"),
   build: {
-    outDir: path.resolve(__dirname, "client/dist"),
+    outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-player': ['react-player'],
-          'vendor': [
-            'react',
-            'react-dom',
-            'wouter',
-            '@tanstack/react-query',
-            'framer-motion'
-          ]
+          'react-vendor': ['react', 'react-dom'],
+          'routing': ['wouter'],
+          'ui-components': [
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-toast',
+            'class-variance-authority',
+            'clsx',
+            'tailwind-merge'
+          ],
+          'data-management': ['@tanstack/react-query'],
+          'form-handling': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'media-player': ['react-player'],
+          'animations': ['framer-motion']
         },
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash].[ext]'
-      },
+      }
     },
+    target: 'es2020',
     assetsDir: "assets",
     sourcemap: true,
     manifest: true,
-    chunkSizeWarningLimit: 1000
+    minify: 'esbuild',
+    cssMinify: true,
+    cssCodeSplit: true
   },
   optimizeDeps: {
     include: ['react-player'],
     esbuildOptions: {
+      target: 'es2020',
       define: {
         global: 'globalThis'
       }
@@ -69,5 +87,5 @@ export default defineConfig({
         ws: true
       }
     }
-  },
+  }
 });

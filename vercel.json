@@ -8,16 +8,6 @@
         "buildCommand": "npm run build:vercel",
         "outputDirectory": "dist"
       }
-    },
-    {
-      "src": "dist/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "dist/**",
-          "shared/**"
-        ]
-      }
     }
   ],
   "routes": [
